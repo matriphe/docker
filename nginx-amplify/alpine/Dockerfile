@@ -1,8 +1,8 @@
-### Copy pasted from: https://github.com/nginxinc/docker-nginx-amplify/blob/master/Dockerfile.alpine
+### Copy pasted and modified from: https://github.com/nginxinc/docker-nginx-amplify/blob/master/Dockerfile.alpine
 
-FROM docker.io/nginx:alpine as nginx
+FROM nginx:stable-alpine as nginx
 
-LABEL maintainer="NGINX Packaging <nginx-packaging@f5.com>"
+LABEL author="NGINX Packaging <nginx-packaging@f5.com>" maintainer="Muhammad Zamroi <halo@matriphe.com>"
 
 # Install the NGINX Amplify Agent
 RUN \
