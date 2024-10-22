@@ -22,9 +22,11 @@ env:
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
 
+  TAG_PHP_FPM_ALPINE_INFO_LATEST: "8.3-fpm-alpine-info"
+
 
 jobs:
-  build:
+  build-php:
 
     runs-on: ubuntu-latest
     permissions:
@@ -83,7 +85,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           # tags: ${{ steps.meta.outputs.tags }}
-          tags: php:8.3-fpm-alpine-info
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_PHP_FPM_ALPINE_INFO_LATEST }}
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
@@ -95,7 +97,7 @@ jobs:
         env:
           # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
           # TAGS: ${{ steps.meta.outputs.tags }}
-          TAGS: php:8.3-fpm-alpine-info
+          TAGS: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_PHP_FPM_ALPINE_INFO_LATEST }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
