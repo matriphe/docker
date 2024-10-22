@@ -2,6 +2,11 @@
 
 This is a collection of `Dockerfiles` to build custom images used by Muhammad Zamroi (matriphe).
 
+## Nginx Amplify
+
+The Nginx Amplify using Alpine. Based on [their official repository](https://github.com/nginxinc/docker-nginx-amplify).
+
+
 ## PHP
 
 The PHP fpm image that displays `phpinfo()` as `index.php` file that is useful to check if Nginx works with PHP-fpm.
