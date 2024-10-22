@@ -6,6 +6,11 @@ This is a collection of `Dockerfiles` to build custom images used by Muhammad Za
 
 The Nginx Amplify using Alpine. Based on [their official repository](https://github.com/nginxinc/docker-nginx-amplify).
 
+### Usage
+
+```console
+docker pull ghcr.io/matriphe/docker:nginx-amplify-alpine-latest
+```
 
 ## PHP
 
