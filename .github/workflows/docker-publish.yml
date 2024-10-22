@@ -7,7 +7,7 @@ name: Docker Build
 
 on:
   schedule:
-    - cron: '0 4 * * 7' # at 04:00 on Sunday
+    - cron: '0 4 * * 0' # at 04:00 on Sunday (0 is Sunday, 7 is Saturday)
   push:
     branches: [ "main" ]
     # Publish semver tags as releases.
