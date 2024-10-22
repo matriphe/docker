@@ -10,7 +10,7 @@ RUN \
     apk add --no-cache python3 py3-pip procps util-linux py3-setproctitle \
     \
     # install packages required for agent build
-    && apk add --no-cache --virtual .build-deps python3-dev libffi-dev build-base git linux-headers \
+    && apk add --no-cache --virtual .amplify python3-dev libffi-dev build-base git linux-headers \
     && cd / \
     \
     # clone latest agent from repository and build it
