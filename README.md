@@ -12,7 +12,7 @@ The Nginx Amplify using Alpine. Based on [their official repository](https://git
 The PHP fpm image that displays `phpinfo()` as `index.php` file that is useful to check if Nginx works with PHP-fpm.
 
 ```console
-docker pull ghcr.io/matriphe/docker:php-8.3-fpm-alpine-info
+docker pull ghcr.io/matriphe/docker:php-fpm-info-alpine-8.3
 ```
 
 ### Usage
