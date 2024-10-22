@@ -7,14 +7,14 @@ LABEL author="NGINX Packaging <nginx-packaging@f5.com>" maintainer="Muhammad Zam
 # Install the NGINX Amplify Agent
 RUN \
     # install packages required by agent
-    apk add --no-cache python3 procps util-linux py3-pip py3-setproctitle \
+    apk add --no-cache python3 py3-pip procps util-linux py3-setproctitle \
     \
     # install packages required for agent build
-    && apk add --no-cache --virtual .amplify python3-dev libffi-dev build-base git linux-headers \
+    && apk add --no-cache --virtual .build-deps python3-dev libffi-dev build-base git linux-headers \
     && cd / \
     \
     # clone latest agent from repository and build it
-    && git clone https://github.com/nginxinc/nginx-amplify-agent \
+    && git clone --single-branch --branch master https://github.com/nginxinc/nginx-amplify-agent \
     && cd nginx-amplify-agent/ \
     && pip install --no-cache-dir -r packages/nginx-amplify-agent/requirements-py310.txt \
     && cp packages/nginx-amplify-agent/setup.py ./ \
