@@ -28,7 +28,7 @@ env:
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
 
-  TAG_PHP_FPM_ALPINE_INFO_LATEST: "8.3-fpm-alpine-info"
+  TAG_PHP_FPM_ALPINE_INFO_LATEST: "php-8.3-fpm-alpine-info"
 
 
 jobs:
