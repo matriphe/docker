@@ -12,8 +12,14 @@ on:
     branches: [ "main" ]
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
+    paths:
+      - '**/Dockerfile'  # Trigger on changes to any Dockerfile
+      - '**/docker-compose.yml'  # Optionally include docker-compose.yml if needed
   pull_request:
     branches: [ "main" ]
+    paths:
+      - '**/Dockerfile'  # Trigger on PRs that change any Dockerfile
+      - '**/docker-compose.yml'  # Optionally include docker-compose.yml if needed
   workflow_dispatch:  # Allows manual triggering from the GitHub UI
 
 env:
