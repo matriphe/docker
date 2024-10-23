@@ -32,6 +32,7 @@ env:
 
   TAG_PHP_FPM_ALPINE_INFO_LATEST: "php-fpm-info-alpine-8.3"
   TAG_NGINX_AMPLIFY_ALPINE_INFO_LATEST: "nginx-amplify-alpine-latest"
+  TAG_NGINX_AMPLIFY: "nginx-amplify"
 
 
 jobs:
@@ -157,18 +158,18 @@ jobs:
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
         with:
           context: ./docker-nginx-amplify
-          file: ./docker-nginx-amplify/Dockerfile.alpine
+          file: ./docker-nginx-amplify/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: ${{ env.PLATFORM }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           # tags: ${{ steps.meta.outputs.tags }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NGINX_AMPLIFY_ALPINE_INFO_LATEST }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NGINX_AMPLIFY }}
 
       - name: Sign the published Docker image
         if: ${{ github.event_name != 'pull_request' }}
         env:
-          TAGS: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NGINX_AMPLIFY_ALPINE_INFO_LATEST }}
+          TAGS: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NGINX_AMPLIFY }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
