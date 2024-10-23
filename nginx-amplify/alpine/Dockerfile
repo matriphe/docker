@@ -1,22 +1,26 @@
-### Copy pasted and modified from: https://github.com/nginxinc/docker-nginx-amplify/blob/master/Dockerfile.alpine
+### Copy pasted and modified from:
+# - https://github.com/nginxinc/docker-nginx-amplify/blob/master/Dockerfile.alpine
+# - https://github.com/nmhung1210/nginx-alpine-amplify/blob/master/Dockerfile
 
-FROM nginx:stable-alpine as nginx
+FROM nginx:stable-alpine AS nginx
 
-LABEL author="NGINX Packaging <nginx-packaging@f5.com>" maintainer="Muhammad Zamroi <halo@matriphe.com>"
+LABEL maintainer="Muhammad Zamroi <halo@matriphe.com>"
 
 # Install the NGINX Amplify Agent
 RUN \
     # install packages required by agent
-    apk add --no-cache python3 py3-pip procps util-linux py3-setproctitle \
-    \
+    apk update \
+    && apk upgrade \
+    && apk add --no-cache python3 procps util-linux py3-pip py3-setproctitle \
     # install packages required for agent build
-    && apk add --no-cache --virtual .amplify python3-dev libffi-dev build-base git linux-headers \
+    && apk add --no-cache --virtual .amplify python3-dev libffi-dev build-base git linux-headers gcc \
     && cd / \
     \
     # clone latest agent from repository and build it
     && git clone --single-branch --branch master https://github.com/nginxinc/nginx-amplify-agent \
     && cd nginx-amplify-agent/ \
-    && pip install --no-cache-dir -r packages/nginx-amplify-agent/requirements-py310.txt \
+    # manually install from packages/nginx-amplify-agent/requirements.txt 
+    && pip3 install --no-cache-dir --break-system-packages --upgrade gevent greenlet netifaces netaddr flup crossplane rstr psutil python-daemon requests ujson PyMySQL \
     && cp packages/nginx-amplify-agent/setup.py ./ \
     && python3 setup.py install \
     \
@@ -31,7 +35,8 @@ RUN \
     # cleanup
     && cd / \
     && rm -Rf nginx-amplify-agent/ \
-    && apk del .amplify
+    && apk del .amplify \
+    && rm -rf /var/cache/apk/*
 
 # Keep the nginx logs inside the container
 RUN unlink /var/log/nginx/access.log \
@@ -50,7 +55,7 @@ COPY ./conf.d/stub_status.conf /etc/nginx/conf.d
 # However, including private keys in the Dockerfile is not recommended.
 # Use the environment variables at runtime as described below.
 
-#ENV API_KEY 1234567890
+ENV API_KEY 1234567890
 
 # If AMPLIFY_IMAGENAME is set, the startup wrapper script will use it to
 # generate the 'imagename' to put in the /etc/amplify-agent/agent.conf
@@ -60,7 +65,7 @@ COPY ./conf.d/stub_status.conf /etc/nginx/conf.d
 # AMPLIFY_IMAGENAME can also be passed to the instance at runtime as
 # described below.
 
-#ENV AMPLIFY_IMAGENAME my-docker-instance-123
+ENV AMPLIFY_IMAGENAME ""
 
 # The /entrypoint.sh script will launch nginx and the Amplify Agent.
 # The script honors API_KEY and AMPLIFY_IMAGENAME environment
