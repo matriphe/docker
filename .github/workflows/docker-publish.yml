@@ -171,7 +171,7 @@ jobs:
         with:
           # context: .
           context: ./nginx-amplify-agent
-          file: Dockerfile.alpine
+          file: ./nginx-amplify-agent/Dockerfile.alpine
           push: ${{ github.event_name != 'pull_request' }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: ${{ env.PLATFORM }}
