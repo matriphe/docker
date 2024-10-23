@@ -153,8 +153,11 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Clone nginx-amplify-agent repository
+        run: git clone https://github.com/nginxinc/nginx-amplify-agent.git
+  
+      - name: Debug ls
         run: ls -al
-
+  
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
