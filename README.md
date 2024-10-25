@@ -4,7 +4,7 @@ This is a collection of `Dockerfiles` to build custom images used by Muhammad Za
 
 ## Nginx Amplify
 
-The Nginx Amplify using Alpine. Based on [their official repository](https://github.com/nginxinc/docker-nginx-amplify).
+The Nginx Amplify is compiled from [their official repository](https://github.com/nginxinc/docker-nginx-amplify).
 
 ### Usage
 
