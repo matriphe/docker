@@ -33,7 +33,7 @@ env:
   TAG_PHP_FPM_ALPINE_INFO_LATEST: "php-fpm-info-alpine-8.3"
   TAG_NGINX_AMPLIFY_ALPINE_INFO_LATEST: "nginx-amplify-alpine-latest"
   TAG_NGINX_AMPLIFY: "nginx-amplify"
-  TAG_WORDPRESS_ALPINE_LATEST: "6-php8.3-fpm-alpine"
+  TAG_WORDPRESS_ALPINE_LATEST: "wp-6-php8.3-fpm-alpine"
 
 
 jobs:
@@ -175,7 +175,7 @@ jobs:
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
-        
+
   wordpress:
 
     runs-on: ubuntu-latest
