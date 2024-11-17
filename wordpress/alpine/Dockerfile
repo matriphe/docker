@@ -8,7 +8,11 @@ RUN mkdir -p ${WORDPRESS_ROOT} && \
     cp -r /var/www/html/* ${WORDPRESS_ROOT} && \
     rm -rf /var/www/html
 
+# Set workdir to new path
 WORKDIR ${WORDPRESS_ROOT}
+
+# Make volume persistent using new path
+VOLUME ${WORDPRESS_ROOT}
 
 # Update PHP-FPM configuration
 RUN sed -i "s|/var/www/html|${WORDPRESS_ROOT}|g" /usr/local/etc/php-fpm.d/www.conf
