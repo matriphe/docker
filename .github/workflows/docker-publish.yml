@@ -41,7 +41,8 @@ jobs:
     with:
       context: .
       file: ./php/fpm/Dockerfile
-      image_tag: php-fpm-php${{ needs.php_version.outputs.php_version }}-trixie
+      image_name: matriphe/docker/php
+      image_tag: ${{ needs.php_version.outputs.php_version }}-fpm
       build_args: |
         PHP_VERSION=${{ needs.php_version.outputs.php_version }}
       push_image: true
@@ -58,7 +59,8 @@ jobs:
     with:
       context: .
       file: ./wordpress/Dockerfile
-      image_tag: wp-6-php${{ needs.php_version.outputs.php_version }}-fpm-alpine
+      image_name: matriphe/docker/wordpress
+      image_tag: php${{ needs.php_version.outputs.php_version }}-fpm
       build_args: |
         PHP_VERSION=${{ needs.php_version.outputs.php_version }}
       push_image: true
