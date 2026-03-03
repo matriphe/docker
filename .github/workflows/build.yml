@@ -18,6 +18,7 @@ on:
       - '**/Dockerfile' # Trigger on changes to any Dockerfile
       - '**/docker-compose.yml' # Optionally include docker-compose.yml if needed
       - '.github/workflows/**' # Trigger on workflow changes
+      - 'nginx/**' # Trigger on nginx build context changes
       - 'config/php/**' # Trigger on shared PHP config changes
       - 'php/fpm/**' # Trigger on PHP-FPM build context changes
       - 'wordpress/**' # Trigger on WordPress build context changes
@@ -48,6 +49,23 @@ jobs:
       - name: Set shared build variables
         id: vars
         run: echo "php_version=8.4" >> "$GITHUB_OUTPUT"
+
+  nginx:
+    if: ${{ always() && (github.event_name != 'pull_request' || needs.checks.result == 'success') }}
+    needs: [checks]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: ./.github/workflows/.docker-build-sign.yml
+    with:
+      context: .
+      file: ./nginx/Dockerfile
+      image_name: matriphe/docker/nginx
+      image_tag: ${{ github.event_name == 'pull_request' && format('PR-{0}', github.event.pull_request.number || github.run_number) || 'latest' }}
+      push_image: true
+      sign_image: ${{ github.event_name != 'pull_request' }}
+    secrets: inherit
 
   php-fpm:
     if: ${{ always() && needs.php_version.result == 'success' && (github.event_name != 'pull_request' || needs.checks.result == 'success') }}
