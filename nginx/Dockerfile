@@ -13,11 +13,11 @@ ARG TARGETOS=linux
 ARG TARGETARCH
 
 # Copy optimized Nginx and OpenTelemetry Collector configuration
-COPY ./config/nginx.conf /etc/nginx/nginx.conf.template
-COPY ./config/otel-config.yaml /etc/opentelemetry-collector/config.yaml
+COPY ./nginx/config/nginx.conf /etc/nginx/nginx.conf.template
+COPY ./nginx/config/otel-config.yaml /etc/opentelemetry-collector/config.yaml
 
 # Copy custom entrypoint script
-COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY ./nginx/docker-entrypoint.sh /docker-entrypoint.sh
 
 RUN \
     # Install runtime dependencies
