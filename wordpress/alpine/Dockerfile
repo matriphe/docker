@@ -7,7 +7,6 @@ FROM wordpress:6-php${PHP_VERSION}-fpm-alpine AS wordpress
 
 # Re-declare ARGs that we need in this stage (they don't carry over from global scope)
 ARG WORKDIR=/var/www/wordpress
-ARG WORDPRESS_SRC=/usr/src/wordpress
 ARG USER=www-data
 
 # Copy wp-cli from the selected stage
@@ -33,11 +32,10 @@ RUN \
     # Update PHP-FPM configuration
     sed -i "s|/var/www/html|${WORDPRESS_ROOT}|g" /usr/local/etc/php-fpm.d/www.conf && \
     \
-    apk update && \
     # Install some tools
-    apk add \
+    apk add --no-cache \
     # jq for JSON parsing
-    jq \ 
+    jq \
     # nano for text editor
     nano && \
     \

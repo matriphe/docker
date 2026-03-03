@@ -15,11 +15,13 @@ on:
     paths:
       - '**/Dockerfile'  # Trigger on changes to any Dockerfile
       - '**/docker-compose.yml'  # Optionally include docker-compose.yml if needed
+      - 'wordpress/alpine/**'  # Trigger on WordPress Alpine build context changes
   pull_request:
     branches: [ "main" ]
     paths:
       - '**/Dockerfile'  # Trigger on PRs that change any Dockerfile
       - '**/docker-compose.yml'  # Optionally include docker-compose.yml if needed
+      - 'wordpress/alpine/**'  # Trigger on WordPress Alpine build context changes
   workflow_dispatch:  # Allows manual triggering from the GitHub UI
 
 env:
@@ -33,7 +35,6 @@ env:
   PHP_VERSION: "8.4"
 
   TAG_PHP_FPM_ALPINE_INFO_LATEST: "php-fpm-info-alpine-8.3"
-  TAG_NGINX_AMPLIFY_ALPINE_INFO_LATEST: "nginx-amplify-alpine-latest"
   TAG_NGINX_AMPLIFY: "nginx-amplify"
   TAG_WORDPRESS_ALPINE_LATEST: "wp-6-php${{ env.PHP_VERSION }}-fpm-alpine"
 
@@ -218,6 +219,8 @@ jobs:
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09
         with:
           context: ./wordpress/alpine
+          build-args: |
+            PHP_VERSION=${{ env.PHP_VERSION }}
           push: ${{ github.event_name != 'pull_request' }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: ${{ env.PLATFORM }}
