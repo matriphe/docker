@@ -12,7 +12,7 @@ Custom NGINX image based on `nginx:stable-alpine-otel`, built from [`nginx`](ngi
 ### Usage
 
 ```console
-docker pull ghcr.io/matriphe/docker:nginx-otel
+docker pull ghcr.io/matriphe/docker/nginx:latest
 ```
 
 ## PHP-FPM
@@ -30,7 +30,7 @@ Custom PHP-FPM image based on Debian trixie (`php:8.4-fpm-trixie`), built from [
 ### Usage
 
 ```console
-docker pull ghcr.io/matriphe/docker:php-fpm-php8.4-trixie
+docker pull ghcr.io/matriphe/docker/php:8.4-fpm
 ```
 
 ## WordPress
@@ -44,12 +44,12 @@ Custom WordPress image based on Alpine (`wordpress:6-php8.4-fpm-alpine`), with:
 ### Usage
 
 ```console
-docker pull ghcr.io/matriphe/docker:wp-6-php8.4-fpm-alpine
+docker pull ghcr.io/matriphe/docker/wordpress:php8.4-fpm
 ```
 
 ## CI / Publish Schedule
 
 The GitHub Actions Docker publish workflow runs on Friday at `04:00 UTC` (`05:00/06:00 Europe/Berlin`, depending on DST) and publishes:
-- `nginx-otel`
-- `php-fpm-php8.4-trixie`
-- `wp-6-php8.4-fpm-alpine`
+- `ghcr.io/matriphe/docker/nginx:latest`
+- `ghcr.io/matriphe/docker/php:8.4-fpm`
+- `ghcr.io/matriphe/docker/wordpress:php8.4-fpm`
