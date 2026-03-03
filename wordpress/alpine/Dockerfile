@@ -37,21 +37,7 @@ RUN \
     # jq for JSON parsing
     jq \
     # nano for text editor
-    nano && \
-    \
-    # Change directory to WordPress surce code
-    cd /usr/src/wordpress && \
-    \
-    # Allow Composer to extends the functionality of Composer to support custom WordPress plugin installation path using `www-data` user
-    su -s /bin/sh -c "composer config --no-interaction allow-plugins.composer/installers true" www-data && \
-    \
-    # Install S3-Uploads plugin from https://github.com/humanmade/S3-Uploads usng Composer using `www-data` user
-    su -s /bin/sh -c "composer require humanmade/s3-uploads:dev-master --no-interaction" www-data && \
-    \
-    # Create plugin page for custom S3 endpoint
-    mkdir -p wp-content/mu-plugins && \
-    # Set owner to `www-data`
-    chown ${USER}:${USER} wp-content/mu-plugins
+    nano
 
 # Set workdir
 WORKDIR ${WORDPRESS_ROOT}
