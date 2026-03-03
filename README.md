@@ -34,6 +34,22 @@ Custom WordPress image based on Alpine (`wordpress:6-php8.4-fpm-alpine`), with:
 docker pull ghcr.io/matriphe/docker:wp-6-php8.4-fpm-alpine
 ```
 
+## NGINX (OpenTelemetry)
+
+Custom NGINX image based on `nginx:stable-alpine-otel`, built from [`nginx`](nginx), with:
+- OpenTelemetry NGINX module enabled via [`nginx/config/nginx.conf`](nginx/config/nginx.conf)
+- OpenTelemetry Collector (`otelcol-contrib`) installed and started by [`nginx/docker-entrypoint.sh`](nginx/docker-entrypoint.sh)
+- Collector pipeline config from [`nginx/config/otel-config.yaml`](nginx/config/otel-config.yaml)
+
+### Usage
+
+```console
+docker pull ghcr.io/matriphe/docker:nginx-otel
+```
+
 ## CI / Publish Schedule
 
-The GitHub Actions Docker publish workflow runs on Friday at `04:00 UTC` (`05:00/06:00 Europe/Berlin`, depending on DST).
+The GitHub Actions Docker publish workflow runs on Friday at `04:00 UTC` (`05:00/06:00 Europe/Berlin`, depending on DST) and publishes:
+- `php-fpm-php8.4-trixie`
+- `wp-6-php8.4-fpm-alpine`
+- `nginx-otel`
