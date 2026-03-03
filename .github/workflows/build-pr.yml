@@ -22,10 +22,68 @@ jobs:
       - name: Validate GitHub workflows with actionlint
         run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.8
 
-      - name: Lint Dockerfiles with hadolint
+      - name: Detect Dockerfile changes
+        id: dockerfiles
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker run --rm -i hadolint/hadolint:v2.12.0 < php/fpm/Dockerfile
-          docker run --rm -i hadolint/hadolint:v2.12.0 < wordpress/Dockerfile
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            pr_number="${{ github.event.pull_request.number }}"
+            api_url="https://api.github.com/repos/${{ github.repository }}/pulls/${pr_number}/files"
+
+            page=1
+            changed_files=""
+            while :; do
+              response="$(curl -fsSL \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                "${api_url}?per_page=100&page=${page}")"
+
+              page_files="$(echo "$response" | jq -r '.[] | .filename')"
+              [ -n "$page_files" ] && changed_files="${changed_files}"$'\n'"${page_files}"
+
+              count="$(echo "$response" | jq 'length')"
+              [ "$count" -lt 100 ] && break
+              page=$((page + 1))
+            done
+
+            dockerfiles="$(printf '%s\n' "$changed_files" | grep -E '(^|/)Dockerfile$' || true)"
+          else
+            dockerfiles="$(find . -type f -name 'Dockerfile' | sed 's#^\./##' | sort || true)"
+          fi
+
+          if [ -z "$dockerfiles" ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No Dockerfile changes detected; hadolint will be skipped."
+            exit 0
+          fi
+
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "files<<EOF"
+            printf '%s\n' "$dockerfiles"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Lint changed Dockerfiles with hadolint
+        if: steps.dockerfiles.outputs.has_changes == 'true'
+        run: |
+          set -euo pipefail
+
+          echo "Dockerfiles to lint:"
+          printf '%s\n' "${{ steps.dockerfiles.outputs.files }}"
+
+          while IFS= read -r dockerfile; do
+            [ -n "$dockerfile" ] || continue
+            if [ ! -f "$dockerfile" ]; then
+              echo "Skipping missing file: $dockerfile"
+              continue
+            fi
+            echo "Linting $dockerfile"
+            docker run --rm -i hadolint/hadolint:v2.12.0 < "$dockerfile"
+          done <<< "${{ steps.dockerfiles.outputs.files }}"
 
   php_version:
     needs: checks
