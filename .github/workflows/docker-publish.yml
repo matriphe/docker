@@ -15,6 +15,7 @@ on:
     paths:
       - '**/Dockerfile'  # Trigger on changes to any Dockerfile
       - '**/docker-compose.yml'  # Optionally include docker-compose.yml if needed
+      - 'config/php/**'  # Trigger on shared PHP config changes
       - 'php/fpm/**'  # Trigger on PHP-FPM build context changes
       - 'wordpress/**'  # Trigger on WordPress build context changes
   pull_request:
@@ -22,6 +23,7 @@ on:
     paths:
       - '**/Dockerfile'  # Trigger on PRs that change any Dockerfile
       - '**/docker-compose.yml'  # Optionally include docker-compose.yml if needed
+      - 'config/php/**'  # Trigger on shared PHP config changes
       - 'php/fpm/**'  # Trigger on PHP-FPM build context changes
       - 'wordpress/**'  # Trigger on WordPress build context changes
   workflow_dispatch:  # Allows manual triggering from the GitHub UI
@@ -34,7 +36,8 @@ jobs:
   php-fpm:
     uses: ./.github/workflows/_docker-build-sign.yml
     with:
-      context: ./php/fpm
+      context: .
+      file: ./php/fpm/Dockerfile
       image_tag: php-fpm-php${{ env.PHP_VERSION }}-trixie
       build_args: |
         PHP_VERSION=${{ env.PHP_VERSION }}
@@ -45,7 +48,8 @@ jobs:
   wordpress:
     uses: ./.github/workflows/_docker-build-sign.yml
     with:
-      context: ./wordpress
+      context: .
+      file: ./wordpress/Dockerfile
       image_tag: wp-6-php${{ env.PHP_VERSION }}-fpm-alpine
       build_args: |
         PHP_VERSION=${{ env.PHP_VERSION }}

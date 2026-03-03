@@ -91,9 +91,9 @@ RUN (groupadd -g 33 ${USER} 2>/dev/null || true) \
     && (useradd -u 33 -g ${USER} -s /bin/bash -m ${USER} 2>/dev/null || true) \
     && chown -R ${USER}:${USER} ${WORKDIR} && chmod -R 755 ${WORKDIR}
 
-# Copy PHP configuration files (moved to end — only invalidates these final layers)
-COPY config/php.ini /usr/local/etc/php/php.ini
-COPY config/www.conf /usr/local/etc/php-fpm.d/www.conf
+# Copy shared PHP configuration files (moved to end — only invalidates these final layers)
+COPY config/php/php.ini /usr/local/etc/php/php.ini
+COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 
 # Layer 7: Update PHP-FPM pool configuration to use the specified user (fast, isolated layer)
 RUN sed -i "s/www-data/${USER}/g" /usr/local/etc/php-fpm.d/www.conf

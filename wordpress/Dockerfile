@@ -14,10 +14,9 @@ COPY --from=wpcli /usr/local/bin/wp /usr/local/bin/wp
 # Copy Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy php-fpm configuration
-COPY --chown=www-data:www-data config/www.conf /usr/local/etc/php-fpm.d/www.conf
-# Copy uploads configuration
-COPY --chown=www-data:www-data config/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
+# Copy shared PHP and php-fpm configuration
+COPY --chown=www-data:www-data config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY --chown=www-data:www-data config/php/php.ini /usr/local/etc/php/php.ini
 
 # Define new WordPress path using the ARG from this stage
 ENV WORDPRESS_ROOT=$WORKDIR
