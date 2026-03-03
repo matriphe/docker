@@ -15,6 +15,7 @@ on:
     paths:
       - '**/Dockerfile'  # Trigger on changes to any Dockerfile
       - '**/docker-compose.yml'  # Optionally include docker-compose.yml if needed
+      - '.github/workflows/**'  # Trigger on workflow changes
       - 'config/php/**'  # Trigger on shared PHP config changes
       - 'php/fpm/**'  # Trigger on PHP-FPM build context changes
       - 'wordpress/**'  # Trigger on WordPress build context changes
@@ -23,6 +24,7 @@ on:
     paths:
       - '**/Dockerfile'  # Trigger on PRs that change any Dockerfile
       - '**/docker-compose.yml'  # Optionally include docker-compose.yml if needed
+      - '.github/workflows/**'  # Trigger on workflow changes
       - 'config/php/**'  # Trigger on shared PHP config changes
       - 'php/fpm/**'  # Trigger on PHP-FPM build context changes
       - 'wordpress/**'  # Trigger on WordPress build context changes
