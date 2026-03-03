@@ -1,0 +1,58 @@
+receivers:
+  filelog:
+    include:
+      - /var/log/nginx/access.log
+    attributes:
+      service.name: "nginx-${env:ENVIRONMENT:-local}"
+    operators:
+      - type: json_parser
+        timestamp:
+          parse_from: attributes.time_local
+          layout: "%d/%b/%Y:%H:%M:%S %z"
+      - type: trace_parser
+        trace_id:
+          parse_from: attributes.trace_id
+        span_id:
+          parse_from: attributes.span_id
+  filelog/error:
+    include:
+      - /var/log/nginx/error.log
+    attributes:
+      service.name: "nginx-${env:ENVIRONMENT:-local}"
+      log.type: error
+
+
+processors:
+  batch:
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+    timeout: "1s"
+
+
+exporters:
+  # Debug exporter for local testing (outputs to console)
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+  
+  # Sentry exporter (requires SENTRY_OTLP_ENDPOINT and SENTRY_DSN_KEY environment variables)
+  otlphttp/sentry:
+    logs_endpoint: "${env:SENTRY_OTLP_ENDPOINT}"
+    headers:
+      x-sentry-auth: "sentry sentry_key=${env:SENTRY_DSN_KEY}"
+    compression: gzip
+    encoding: proto
+
+service:
+  pipelines:
+    logs:
+      receivers:
+        - filelog
+        - filelog/error
+      processors:
+        - batch
+      exporters:
+        - debug
+        # Uncomment the line below when SENTRY_OTLP_ENDPOINT and SENTRY_DSN_KEY are configured
+        # - otlphttp/sentry
