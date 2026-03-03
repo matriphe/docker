@@ -36,10 +36,6 @@ server {
 }
 ```
 
-## CI / Publish Schedule
-
-The GitHub Actions Docker publish workflow runs on Friday at `04:00 UTC` (`05:00/06:00 Europe/Berlin`, depending on DST).
-
 ## WordPress
 
 Custom WordPress image based on `wordpress:6-php8.4-fpm-alpine`, with:
@@ -53,3 +49,7 @@ Custom WordPress image based on `wordpress:6-php8.4-fpm-alpine`, with:
 ```console
 docker pull ghcr.io/matriphe/docker:wp-6-php8.4-fpm-alpine
 ```
+
+## CI / Publish Schedule
+
+The GitHub Actions Docker publish workflow runs on Friday at `04:00 UTC` (`05:00/06:00 Europe/Berlin`, depending on DST).
