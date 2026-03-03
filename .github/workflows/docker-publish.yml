@@ -36,7 +36,6 @@ env:
 
   TAG_PHP_FPM_ALPINE_INFO_LATEST: "php-fpm-info-alpine-8.3"
   TAG_NGINX_AMPLIFY: "nginx-amplify"
-  TAG_WORDPRESS_ALPINE_LATEST: "wp-6-php${{ env.PHP_VERSION }}-fpm-alpine"
 
 
 jobs:
@@ -214,6 +213,10 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
+      - name: Set WordPress image tag
+        id: vars
+        run: echo "wordpress_tag=wp-6-php${PHP_VERSION}-fpm-alpine" >> "$GITHUB_OUTPUT"
+
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09
@@ -226,11 +229,11 @@ jobs:
           platforms: ${{ env.PLATFORM }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_WORDPRESS_ALPINE_LATEST }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.wordpress_tag }}
 
       - name: Sign the published Docker image
         if: ${{ github.event_name != 'pull_request' }}
         env:
-          TAGS: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_WORDPRESS_ALPINE_LATEST }}
+          TAGS: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.wordpress_tag }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
