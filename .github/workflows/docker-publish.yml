@@ -28,31 +28,38 @@ on:
       - 'wordpress/**'  # Trigger on WordPress build context changes
   workflow_dispatch:  # Allows manual triggering from the GitHub UI
 
-env:
-  PHP_VERSION: "8.4"
-
-
 jobs:
+  php-version:
+    runs-on: ubuntu-latest
+    outputs:
+      php_version: ${{ steps.vars.outputs.php_version }}
+    steps:
+      - name: Set shared build variables
+        id: vars
+        run: echo "php_version=8.4" >> "$GITHUB_OUTPUT"
+
   php-fpm:
+    needs: php-version
     uses: ./.github/workflows/_docker-build-sign.yml
     with:
       context: .
       file: ./php/fpm/Dockerfile
-      image_tag: php-fpm-php${{ env.PHP_VERSION }}-trixie
+      image_tag: php-fpm-php${{ needs.php-version.outputs.php_version }}-trixie
       build_args: |
-        PHP_VERSION=${{ env.PHP_VERSION }}
+        PHP_VERSION=${{ needs.php-version.outputs.php_version }}
       push_image: ${{ github.event_name != 'pull_request' }}
       sign_image: ${{ github.event_name != 'pull_request' }}
     secrets: inherit
 
   wordpress:
+    needs: php-version
     uses: ./.github/workflows/_docker-build-sign.yml
     with:
       context: .
       file: ./wordpress/Dockerfile
-      image_tag: wp-6-php${{ env.PHP_VERSION }}-fpm-alpine
+      image_tag: wp-6-php${{ needs.php-version.outputs.php_version }}-fpm-alpine
       build_args: |
-        PHP_VERSION=${{ env.PHP_VERSION }}
+        PHP_VERSION=${{ needs.php-version.outputs.php_version }}
       push_image: ${{ github.event_name != 'pull_request' }}
       sign_image: ${{ github.event_name != 'pull_request' }}
     secrets: inherit
