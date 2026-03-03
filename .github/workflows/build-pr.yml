@@ -11,7 +11,24 @@ on:
   workflow_dispatch:  # Allows manual triggering from the GitHub UI
 
 jobs:
+  checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Validate GitHub workflows with actionlint
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.8
+
+      - name: Lint Dockerfiles with hadolint
+        run: |
+          docker run --rm -i hadolint/hadolint:v2.12.0 < php/fpm/Dockerfile
+          docker run --rm -i hadolint/hadolint:v2.12.0 < wordpress/Dockerfile
+
   php_version:
+    needs: checks
     runs-on: ubuntu-latest
     outputs:
       php_version: ${{ steps.vars.outputs.php_version }}
