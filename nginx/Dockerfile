@@ -1,5 +1,5 @@
 # Base image
-FROM nginx:stable-alpine-otel
+FROM docker.io/library/nginx:stable-alpine-otel
 
 # Create www-data user and group
 ARG USER=www-data
