@@ -46,9 +46,9 @@ jobs:
     with:
       context: .
       file: ./php/fpm/Dockerfile
-      image_tag: php-fpm-php${{ needs.php-version.outputs.php_version }}-trixie
+      image_tag: php-fpm-php${{ needs['php-version'].outputs.php_version }}-trixie
       build_args: |
-        PHP_VERSION=${{ needs.php-version.outputs.php_version }}
+        PHP_VERSION=${{ needs['php-version'].outputs.php_version }}
       push_image: ${{ github.event_name != 'pull_request' }}
       sign_image: ${{ github.event_name != 'pull_request' }}
     secrets: inherit
@@ -59,9 +59,9 @@ jobs:
     with:
       context: .
       file: ./wordpress/Dockerfile
-      image_tag: wp-6-php${{ needs.php-version.outputs.php_version }}-fpm-alpine
+      image_tag: wp-6-php${{ needs['php-version'].outputs.php_version }}-fpm-alpine
       build_args: |
-        PHP_VERSION=${{ needs.php-version.outputs.php_version }}
+        PHP_VERSION=${{ needs['php-version'].outputs.php_version }}
       push_image: ${{ github.event_name != 'pull_request' }}
       sign_image: ${{ github.event_name != 'pull_request' }}
     secrets: inherit
