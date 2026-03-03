@@ -37,7 +37,7 @@ jobs:
       contents: read
       packages: write
       id-token: write
-    uses: ./.github/workflows/_docker-build-sign.yml
+    uses: ./.github/workflows/.docker-build-sign.yml
     with:
       context: .
       file: ./php/fpm/Dockerfile
@@ -55,7 +55,7 @@ jobs:
       contents: read
       packages: write
       id-token: write
-    uses: ./.github/workflows/_docker-build-sign.yml
+    uses: ./.github/workflows/.docker-build-sign.yml
     with:
       context: .
       file: ./wordpress/Dockerfile
