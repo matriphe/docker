@@ -1,0 +1,150 @@
+name: Cleanup GHCR Images
+
+on:
+  schedule:
+    - cron: '0 4 * * 0' # Sunday at 04:00 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Preview deletions without deleting package versions'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: cleanup-ghcr
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package_name: docker/php
+            keep_tag: 8.4-fpm
+          - package_name: docker/wordpress
+            keep_tag: php8.4-fpm
+          - package_name: docker/nginx
+            keep_tag: latest
+    steps:
+      - name: Delete old package versions
+        uses: actions/github-script@v8
+        env:
+          PACKAGE_NAME: ${{ matrix.package_name }}
+          KEEP_TAG: ${{ matrix.keep_tag }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const packageName = process.env.PACKAGE_NAME;
+            const keepTag = process.env.KEEP_TAG;
+            const dryRun = String(process.env.DRY_RUN).toLowerCase() === "true";
+            const packageType = "container";
+            const ownerType = context.payload.repository.owner.type;
+
+            function getTags(version) {
+              return version?.metadata?.container?.tags || [];
+            }
+
+            async function listVersionsForPage(page) {
+              const base = {
+                package_type: packageType,
+                package_name: packageName,
+                per_page: 100,
+                page,
+              };
+
+              if (ownerType === "Organization") {
+                return github.rest.packages.listPackageVersionsForPackageOwnedByOrg({
+                  org: owner,
+                  ...base,
+                });
+              }
+
+              return github.rest.packages.listPackageVersionsForPackageOwnedByUser({
+                username: owner,
+                ...base,
+              });
+            }
+
+            async function deleteVersion(versionId) {
+              const base = {
+                package_type: packageType,
+                package_name: packageName,
+                package_version_id: versionId,
+              };
+
+              if (ownerType === "Organization") {
+                return github.rest.packages.deletePackageVersionForOrg({
+                  org: owner,
+                  ...base,
+                });
+              }
+
+              return github.rest.packages.deletePackageVersionForUser({
+                username: owner,
+                ...base,
+              });
+            }
+
+            const versions = [];
+            for (let page = 1; ; page += 1) {
+              const response = await listVersionsForPage(page);
+              const data = response.data || [];
+              versions.push(...data);
+              if (data.length < 100) {
+                break;
+              }
+            }
+
+            core.info(`Package: ${packageName}`);
+            core.info(`Protected tag: ${keepTag}`);
+            core.info(`Owner type: ${ownerType}`);
+            core.info(`Dry run: ${dryRun}`);
+            core.info(`Total versions found: ${versions.length}`);
+
+            let kept = 0;
+            let deleted = 0;
+            let candidates = 0;
+
+            for (const version of versions) {
+              const tags = getTags(version);
+              const tagList = tags.length > 0 ? tags.join(", ") : "(untagged)";
+              const protectedVersion = tags.includes(keepTag);
+
+              if (protectedVersion) {
+                kept += 1;
+                core.info(`KEEP    id=${version.id} tags=${tagList}`);
+                continue;
+              }
+
+              candidates += 1;
+              if (dryRun) {
+                core.info(`DRYRUN  id=${version.id} tags=${tagList}`);
+                continue;
+              }
+
+              try {
+                await deleteVersion(version.id);
+                deleted += 1;
+                core.info(`DELETE  id=${version.id} tags=${tagList}`);
+              } catch (error) {
+                if (error.status === 404) {
+                  core.info(`SKIP    id=${version.id} already removed`);
+                  continue;
+                }
+
+                throw error;
+              }
+            }
+
+            core.info(`Summary for ${packageName}:`);
+            core.info(`- kept: ${kept}`);
+            core.info(`- delete candidates: ${candidates}`);
+            core.info(`- deleted: ${deleted}`);
