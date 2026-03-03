@@ -1,4 +1,4 @@
-name: Docker Build
+name: Pull Request Check
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -6,19 +6,8 @@ name: Docker Build
 # documentation.
 
 on:
-  schedule:
-    - cron: '0 4 * * 5' # at 04:00 UTC on Friday (05:00/06:00 Europe/Berlin depending DST; 0 is Sunday, 5 is Friday)
-  push:
+  pull_request:
     branches: [ "main" ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
-    paths:
-      - '**/Dockerfile'  # Trigger on changes to any Dockerfile
-      - '**/docker-compose.yml'  # Optionally include docker-compose.yml if needed
-      - '.github/workflows/**'  # Trigger on workflow changes
-      - 'config/php/**'  # Trigger on shared PHP config changes
-      - 'php/fpm/**'  # Trigger on PHP-FPM build context changes
-      - 'wordpress/**'  # Trigger on WordPress build context changes
   workflow_dispatch:  # Allows manual triggering from the GitHub UI
 
 jobs:
@@ -44,8 +33,8 @@ jobs:
       image_tag: php-fpm-php${{ needs.php_version.outputs.php_version }}-trixie
       build_args: |
         PHP_VERSION=${{ needs.php_version.outputs.php_version }}
-      push_image: true
-      sign_image: true
+      push_image: false
+      sign_image: false
     secrets: inherit
 
   wordpress:
@@ -61,6 +50,6 @@ jobs:
       image_tag: wp-6-php${{ needs.php_version.outputs.php_version }}-fpm-alpine
       build_args: |
         PHP_VERSION=${{ needs.php_version.outputs.php_version }}
-      push_image: true
-      sign_image: true
+      push_image: false
+      sign_image: false
     secrets: inherit
