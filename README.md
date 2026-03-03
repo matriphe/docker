@@ -38,11 +38,11 @@ server {
 
 ## WordPress
 
-Custom WordPress image based on `wordpress:6-php8.4-fpm-alpine`, with:
+Custom WordPress image based on Alpine (`wordpress:6-php8.4-fpm-alpine`), with:
 - `wp-cli` available in the container
 - Composer available in the container
-- Custom PHP-FPM pool config from [`wordpress/alpine/config/www.conf`](wordpress/alpine/config/www.conf)
-- Upload limits from [`wordpress/alpine/config/uploads.ini`](wordpress/alpine/config/uploads.ini) (`20M`)
+- Custom PHP-FPM pool config from [`wordpress/config/www.conf`](wordpress/config/www.conf)
+- Upload limits from [`wordpress/config/uploads.ini`](wordpress/config/uploads.ini) (`20M`)
 
 ### Usage
 
