@@ -31,7 +31,7 @@ jobs:
           - package_name: docker/wordpress
             keep_tag: php8.4-fpm
           - package_name: docker/nginx
-            keep_tag: latest
+            keep_tag: otel
     steps:
       - name: Delete old package versions
         uses: actions/github-script@v8
