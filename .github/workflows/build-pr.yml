@@ -23,8 +23,8 @@ jobs:
         uses: super-linter/super-linter/slim@v7.4.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALIDATE_ALL_CODEBASE: ${{ github.event_name == 'workflow_dispatch' }}
-          FILTER_REGEX_INCLUDE: '(^|/)(Dockerfile|\\.github/workflows/.*\\.ya?ml)$'
+          VALIDATE_ALL_CODEBASE: false
+          FILTER_REGEX_INCLUDE: '(^|/)(Dockerfile|\\.github/workflows/.*\\.ya?ml|.*\\.md)$'
 
   php_version:
     needs: checks
