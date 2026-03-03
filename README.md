@@ -45,3 +45,7 @@ server {
     }
 }
 ```
+
+## CI / Publish Schedule
+
+The GitHub Actions Docker publish workflow runs on Friday at `04:00 UTC` (`05:00/06:00 Europe/Berlin`, depending on DST).
