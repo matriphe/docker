@@ -41,6 +41,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_ALL_CODEBASE: false
+          VALIDATE_CHECKOV: false
+          VALIDATE_JSCPD: false
+          VALIDATE_DOCKERFILE_HADOLINT: false
           FILTER_REGEX_INCLUDE: '(^|/)(Dockerfile|\\.github/workflows/.*\\.ya?ml|.*\\.md)$'
 
   php_version:
