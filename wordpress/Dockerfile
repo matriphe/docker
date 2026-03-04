@@ -1,9 +1,9 @@
 ARG WORKDIR=/var/www/wordpress
 ARG PHP_VERSION=8.4
 
-FROM wordpress:cli-php${PHP_VERSION} AS wpcli
+FROM docker.io/library/wordpress:cli-php${PHP_VERSION} AS wpcli
 
-FROM wordpress:6-php${PHP_VERSION}-fpm-alpine AS wordpress
+FROM docker.io/library/wordpress:6-php${PHP_VERSION}-fpm-alpine AS wordpress
 
 # Re-declare ARGs that we need in this stage (they don't carry over from global scope)
 ARG WORKDIR=/var/www/wordpress
@@ -12,7 +12,7 @@ ARG USER=www-data
 # Copy wp-cli from the selected stage
 COPY --from=wpcli /usr/local/bin/wp /usr/local/bin/wp
 # Copy Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=docker.io/library/composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copy shared PHP and php-fpm configuration
 COPY --chown=www-data:www-data config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
