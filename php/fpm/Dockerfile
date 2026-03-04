@@ -50,12 +50,12 @@ RUN set -eux; \
     apk del .build-deps; \
     rm -rf /tmp/* /var/tmp/*
 
-# We use UID 33 (Debian/Ubuntu standard) instead of 82 (Alpine default) 
-# to ensure consistent file permissions when sharing volumes between 
-# different base images or host systems.
+# We use UID 82 (the Alpine default for www-data) to ensure consistent 
+# file permissions when sharing volumes with the Nginx container, 
+# which is also based on Alpine.
 RUN set -eux; \
-    (addgroup -g 33 -S "${USER}" 2>/dev/null || true); \
-    (adduser -u 33 -D -S -G "${USER}" "${USER}" 2>/dev/null || true); \
+    (addgroup -g 82 -S "${USER}" 2>/dev/null || true); \
+    (adduser -u 82 -D -S -G "${USER}" "${USER}" 2>/dev/null || true); \
     chown -R "${USER}:${USER}" "${WORKDIR}"; \
     chmod -R 755 "${WORKDIR}"
 
