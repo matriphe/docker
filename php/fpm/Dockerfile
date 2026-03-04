@@ -17,6 +17,8 @@ ARG BUILD_DEPS="zlib-dev libzip-dev libpng-dev libwebp-dev libxpm-dev libjpeg-tu
 
 ARG PHP_EXTENSIONS="pdo pdo_mysql xml mbstring exif bcmath intl zip curl"
 ARG PECL_EXTENSIONS="apcu excimer"
+# Build concurrency argument to speed up extension compilation 
+# on multi-core systems (e.g., -j$(nproc))
 ARG JOB_NUM=""
 
 # JIT is disabled because it often causes segmentation faults when building 
