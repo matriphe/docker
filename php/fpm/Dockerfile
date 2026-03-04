@@ -18,6 +18,9 @@ ARG BUILD_DEPS="zlib-dev libzip-dev libpng-dev libwebp-dev libxpm-dev libjpeg-tu
 ARG PHP_EXTENSIONS="pdo pdo_mysql xml mbstring exif bcmath intl zip curl"
 ARG PECL_EXTENSIONS="apcu excimer"
 ARG JOB_NUM=""
+
+# JIT is disabled because it often causes segmentation faults when building 
+# for ARM64 via QEMU emulation on x86_64 CI runners.
 ARG PHP_OPCACHE_ENABLE=1
 ARG PHP_OPCACHE_JIT=0
 ARG PHP_OPCACHE_ENABLE_JIT=0
@@ -47,6 +50,9 @@ RUN set -eux; \
     apk del .build-deps; \
     rm -rf /tmp/* /var/tmp/*
 
+# We use UID 33 (Debian/Ubuntu standard) instead of 82 (Alpine default) 
+# to ensure consistent file permissions when sharing volumes between 
+# different base images or host systems.
 RUN set -eux; \
     (addgroup -g 33 -S "${USER}" 2>/dev/null || true); \
     (adduser -u 33 -D -S -G "${USER}" "${USER}" 2>/dev/null || true); \
