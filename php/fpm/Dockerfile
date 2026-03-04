@@ -43,6 +43,9 @@ RUN set -eux; \
     apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
         ${BUILD_DEPS}; \
+    # gd requires pre-configuration for FreeType, JPEG, and WebP support.
+    # opcache is explicitly installed here to ensure it's correctly compiled 
+    # and enabled with the specified optimizations.
     docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp; \
     docker-php-ext-install -j"${JOB_NUM:-$(nproc)}" gd opcache ${PHP_EXTENSIONS}; \
     pecl install ${PECL_EXTENSIONS}; \
