@@ -1,20 +1,19 @@
 ARG PHP_VERSION=8.4
 ARG WORKDIR=/var/www/html
 ARG USER=www-data
-ARG DEBIAN_FRONTEND=noninteractive
 
 FROM docker.io/library/composer:latest AS composer
 
-FROM docker.io/library/php:${PHP_VERSION}-fpm-trixie AS php_fpm
+FROM docker.io/library/php:${PHP_VERSION}-fpm-alpine AS php_fpm
 ARG WORKDIR=/var/www/html
 ARG USER=www-data
 
 LABEL maintainer="Muhammad Zamroni <halo@matriphe.com>"
 
-ARG RUNTIME_DEPS="git pkg-config libfcgi-bin zip unzip curl \
-    libzip5 libpng16-16 libwebp7 libxpm4 libjpeg62-turbo libfreetype6 libxml2 libicu76 libonig5 libcurl4"
+ARG RUNTIME_DEPS="git pkgconf fcgi zip unzip curl \
+    libzip libpng libwebp libxpm libjpeg-turbo freetype libxml2 icu-libs oniguruma libcurl"
 
-ARG BUILD_DEPS="zlib1g-dev libzip-dev libpng-dev libwebp-dev libxpm-dev libjpeg-dev libfreetype-dev libxml2-dev libicu-dev libonig-dev libcurl4-openssl-dev"
+ARG BUILD_DEPS="zlib-dev libzip-dev libpng-dev libwebp-dev libxpm-dev libjpeg-turbo-dev freetype-dev libxml2-dev icu-dev oniguruma-dev curl-dev"
 
 ARG PHP_EXTENSIONS="pdo pdo_mysql xml mbstring exif bcmath intl zip curl"
 ARG PECL_EXTENSIONS="apcu excimer"
@@ -37,34 +36,20 @@ COPY --from=composer /usr/bin/composer /usr/bin/composer
 WORKDIR ${WORKDIR}
 
 RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends ${RUNTIME_DEPS}; \
-    rm -rf /var/lib/apt/lists/*
-
-RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends \
+    apk add --no-cache ${RUNTIME_DEPS}; \
+    apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
         ${BUILD_DEPS}; \
-    rm -rf /var/lib/apt/lists/*
-
-RUN set -eux; \
     docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp; \
-    docker-php-ext-install -j"${JOB_NUM:-$(nproc)}" gd opcache ${PHP_EXTENSIONS}
-
-RUN set -eux; \
+    docker-php-ext-install -j"${JOB_NUM:-$(nproc)}" gd opcache ${PHP_EXTENSIONS}; \
     pecl install ${PECL_EXTENSIONS}; \
-    docker-php-ext-enable ${PECL_EXTENSIONS}
+    docker-php-ext-enable ${PECL_EXTENSIONS}; \
+    apk del .build-deps; \
+    rm -rf /tmp/* /var/tmp/*
 
 RUN set -eux; \
-    apt-get purge -y $PHPIZE_DEPS ${BUILD_DEPS}; \
-    apt-get autoremove -y; \
-    apt-get clean; \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-RUN set -eux; \
-    (groupadd -g 33 "${USER}" 2>/dev/null || true); \
-    (useradd -u 33 -g "${USER}" -s /bin/bash -m "${USER}" 2>/dev/null || true); \
+    (addgroup -g 33 -S "${USER}" 2>/dev/null || true); \
+    (adduser -u 33 -D -S -G "${USER}" "${USER}" 2>/dev/null || true); \
     chown -R "${USER}:${USER}" "${WORKDIR}"; \
     chmod -R 755 "${WORKDIR}"
 

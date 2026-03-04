@@ -17,7 +17,7 @@ docker pull ghcr.io/matriphe/docker/nginx:otel
 
 ## PHP-FPM
 
-Custom PHP-FPM image based on Debian trixie (`php:8.4-fpm-trixie`), built from [`php/fpm`](php/fpm) with:
+Custom PHP-FPM image based on Alpine (`php:8.4-fpm-alpine`), built from [`php/fpm`](php/fpm) with:
 - Shared PHP config from [`config/php/php.ini`](config/php/php.ini)
 - Shared FPM pool config from [`config/php/www.conf`](config/php/www.conf)
 - Common extensions and tools for app workloads
