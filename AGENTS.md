@@ -2,8 +2,9 @@
 
 This file provides guidance for AI agents working in this repository.
 
-### Commit Message Prefixes
-Always use the appropriate prefix based on the AI agent being used:
+## Commit Message Prefixes
+
+**Always** use the appropriate prefix based on the AI agent being used:
 
 | Agent             | Prefix                |
 |-------------------|-----------------------|
@@ -56,7 +57,7 @@ Model: GPT-5.3-Codex (Medium)
 
 **Required Co-Author Trailer:** Add the agent identity using a `Co-authored-by:` trailer in every AI-generated commit message.
 
-### Rationale
+## Rationale
 
 - **Traceability**: Identify which AI agent made specific changes
 - **Accountability**: Track performance and patterns of different agents
