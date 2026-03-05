@@ -2,17 +2,19 @@
 
 This is a collection of `Dockerfiles` to build custom images used by Muhammad Zamroi (matriphe).
 
-## NGINX (OpenTelemetry)
+## OpenResty
 
-Custom NGINX image based on `nginx:stable-alpine-otel`, built from [`nginx`](nginx), with:
-- OpenTelemetry NGINX module enabled via [`nginx/config/nginx.conf`](nginx/config/nginx.conf)
-- OpenTelemetry Collector (`otelcol-contrib`) installed and started by [`nginx/docker-entrypoint.sh`](nginx/docker-entrypoint.sh)
-- Collector pipeline config from [`nginx/config/otel-config.yaml`](nginx/config/otel-config.yaml)
+Custom OpenResty image based on `openresty/openresty:alpine`, built from [`nginx`](nginx). OpenResty is Nginx with Lua scripting capabilities, providing enhanced flexibility and performance.
+
+### Features
+- Same configuration compatibility as Nginx
+- Lua scripting support for custom logic
+- Maintains all proxy and security settings from original Nginx config
 
 ### Usage
 
 ```console
-docker pull ghcr.io/matriphe/docker/nginx:otel
+docker pull ghcr.io/matriphe/docker/nginx:openresty
 ```
 
 ## PHP-FPM
@@ -50,6 +52,6 @@ docker pull ghcr.io/matriphe/docker/wordpress:php8.4-fpm
 ## CI / Publish Schedule
 
 The GitHub Actions Docker publish workflow runs on Friday at `04:00 UTC` (`05:00/06:00 Europe/Berlin`, depending on DST) and publishes:
-- `ghcr.io/matriphe/docker/nginx:otel`
+- `ghcr.io/matriphe/docker/nginx:openresty`
 - `ghcr.io/matriphe/docker/php:8.4-fpm`
 - `ghcr.io/matriphe/docker/wordpress:php8.4-fpm`
