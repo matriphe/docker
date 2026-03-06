@@ -32,11 +32,11 @@ jobs:
           MAIN_NGINX_TAG="otel"
           MAIN_PHP_TAG="8.4-fpm"
           MAIN_WP_TAG="php8.4-fpm"
-          
+
           NGINX_TAG=$MAIN_NGINX_TAG
           PHP_TAG=$MAIN_PHP_TAG
           WP_TAG=$MAIN_WP_TAG
-          
+
           if [ "$EVENT_NAME" = "pull_request" ] && [ -n "$PR_NUMBER" ]; then
             PR_TAG="PR-${PR_NUMBER}"
             if docker manifest inspect ghcr.io/${{ github.repository }}/nginx:${PR_TAG} > /dev/null 2>&1; then
@@ -52,7 +52,7 @@ jobs:
               echo "Found WordPress PR built image: $WP_TAG"
             fi
           fi
-          
+
           echo "nginx=$NGINX_TAG" >> "$GITHUB_OUTPUT"
           echo "php=$PHP_TAG" >> "$GITHUB_OUTPUT"
           echo "wordpress=$WP_TAG" >> "$GITHUB_OUTPUT"
@@ -63,6 +63,7 @@ jobs:
           cat << 'EOF' > .test-env/docker-compose.yml
           volumes:
             wp_data:
+            php_data:
             
           services:
             nginx:
@@ -72,13 +73,14 @@ jobs:
               volumes:
                 - ./nginx.conf:/etc/nginx/conf.d/test.conf:ro
                 - wp_data:/var/www/wordpress:ro
+                - php_data:/var/www/php:ro
               depends_on:
                 - php
                 - wordpress
             php:
               image: ghcr.io/${{ github.repository }}/php:${{ steps.tags.outputs.php }}
               volumes:
-                - wp_data:/var/www/wordpress:rw
+                - php_data:/var/www/php:rw
             wordpress:
               user: root
               image: ghcr.io/${{ github.repository }}/wordpress:${{ steps.tags.outputs.wordpress }}
@@ -99,23 +101,31 @@ jobs:
                 - MYSQL_USER=wordpress
                 - MYSQL_PASSWORD=wordpress
           EOF
-          
+
           cat << 'EOF' > .test-env/nginx.conf
           server {
               listen 80;
               server_name localhost;
-              root /var/www/wordpress;
               index index.php index.html;
 
-              location / {
-                  try_files $uri $uri/ =404;
-              }
-
-              location ~ \.php$ {
+              location /info.php {
+                  root /var/www/php;
                   fastcgi_pass php:9000;
                   fastcgi_index index.php;
-                  fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                  fastcgi_param SCRIPT_FILENAME /var/www/php/info.php;
                   include fastcgi_params;
+              }
+
+              location / {
+                  root /var/www/wordpress;
+                  try_files $uri $uri/ /index.php?$args;
+                  
+                  location ~ \.php$ {
+                      fastcgi_pass wordpress:9000;
+                      fastcgi_index index.php;
+                      fastcgi_param SCRIPT_FILENAME /var/www/wordpress$fastcgi_script_name;
+                      include fastcgi_params;
+                  }
               }
           }
           EOF
@@ -127,9 +137,9 @@ jobs:
           # Wait for services to be ready
           sleep 20
           docker compose ps
-          # Inject info.php
-          docker compose exec -u root -T wordpress sh -c "echo '<?php phpinfo(); ?>' > /var/www/wordpress/info.php"
-          docker compose exec -u root -T wordpress chown www-data:www-data /var/www/wordpress/info.php
+          # Inject info.php into PHP container
+          docker compose exec -u root -T php sh -c "mkdir -p /var/www/php && echo '<?php phpinfo(); ?>' > /var/www/php/info.php"
+          docker compose exec -u root -T php chown www-data:www-data /var/www/php/info.php
 
       - name: Test PHP FPM endpoints
         working-directory: .test-env
@@ -144,7 +154,9 @@ jobs:
           docker compose exec -T wordpress wp core config --dbhost=db --dbname=wordpress --dbuser=wordpress --dbpass=wordpress --allow-root
           docker compose exec -T wordpress wp core install --url="http://localhost:8080" --title="Test Site" --admin_user="admin" --admin_password="password" --admin_email="admin@example.com" --allow-root
           docker compose exec -T wordpress wp plugin list --allow-root
-          
+          # Verify Nginx routes to WordPress index
+          curl -s http://localhost:8080/ | grep -i "Test Site"
+
       - name: Teardown Test Environment
         if: always()
         working-directory: .test-env
