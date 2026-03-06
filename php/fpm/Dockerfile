@@ -16,7 +16,7 @@ ARG RUNTIME_DEPS="git pkgconf fcgi zip unzip curl \
 ARG BUILD_DEPS="zlib-dev libzip-dev libpng-dev libwebp-dev libxpm-dev libjpeg-turbo-dev freetype-dev libxml2-dev icu-dev oniguruma-dev curl-dev"
 
 ARG PHP_EXTENSIONS="pdo pdo_mysql xml mbstring exif bcmath intl zip curl"
-ARG PECL_EXTENSIONS="apcu excimer"
+ARG PECL_EXTENSIONS="apcu excimer opentelemetry"
 # Build concurrency argument to speed up extension compilation 
 # on multi-core systems (e.g., -j$(nproc))
 ARG JOB_NUM=""
@@ -66,6 +66,7 @@ RUN set -eux; \
 
 COPY config/php/php.ini /usr/local/etc/php/php.ini
 COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY config/php/php-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
 
 RUN set -eux; \
     sed -i "s/www-data/${USER}/g" /usr/local/etc/php-fpm.d/www.conf

@@ -11,7 +11,7 @@ receivers:
       grpc:
         endpoint: 0.0.0.0:4318
 
-  # OpenResty OTLP receiver (for future enhancement)
+  # OpenResty OTLP receiver
   otlp/openresty:
     protocols:
       grpc:
@@ -37,41 +37,31 @@ processors:
 
 
 exporters:
-  # Debug exporter for local testing (outputs to console)
+  # Jaeger exporter for testing
+  jaeger:
+    endpoint: "jaeger:14250"
+    tls:
+      insecure: true
+
+  # Debug exporter for local testing
   debug:
     verbosity: detailed
     sampling_initial: 5
     sampling_thereafter: 200
-
-  # Sentry exporter for PHP-FPM
-  otlphttp/sentry-php:
-    endpoint: "${env:SENTRY_OTLP_ENDPOINT}"
-    headers:
-      x-sentry-auth: "sentry sentry_key=${env:SENTRY_DSN_KEY_PHP}"
-    compression: gzip
-    encoding: proto
-
-  # Sentry exporter for WordPress
-  otlphttp/sentry-wordpress:
-    endpoint: "${env:SENTRY_OTLP_ENDPOINT}"
-    headers:
-      x-sentry-auth: "sentry sentry_key=${env:SENTRY_DSN_KEY_WORDPRESS}"
-    compression: gzip
-    encoding: proto
 
 service:
   pipelines:
     # PHP-FPM pipeline
     traces/php:
       receivers: [otlp/php]
-      exporters: [otlphttp/sentry-php]
+      exporters: [jaeger, debug]
 
     # WordPress pipeline
     traces/wordpress:
       receivers: [otlp/wordpress]
-      exporters: [otlphttp/sentry-wordpress]
+      exporters: [jaeger, debug]
 
-    # Logs pipeline (shared)
+    # Logs pipeline
     logs:
       receivers: [filelog]
       exporters: [debug]

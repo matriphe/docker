@@ -16,13 +16,16 @@ COPY --from=composer_bin /usr/bin/composer /usr/bin/composer
 
 COPY --chown=www-data:www-data config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 COPY --chown=www-data:www-data config/php/php.ini /usr/local/etc/php/php.ini
+COPY --chown=www-data:www-data config/wordpress/wp-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
 
 RUN set -eux; \
     mkdir -p "${WORDPRESS_ROOT}"; \
     cp -r /var/www/html/* "${WORDPRESS_ROOT}"; \
     rm -rf /var/www/html; \
-    sed -i "s|/var/www/html|${WORDPRESS_ROOT}|g" /usr/local/etc/php-fpm.d/www.conf; \
-    apk add --no-cache jq nano
+    sed -i "s|/var/www/html|${WORDPRESS_ROOT}|" /usr/local/etc/php-fpm.d/www.conf; \
+    apk add --no-cache jq nano; \
+    pecl install opentelemetry; \
+    docker-php-ext-enable opentelemetry
 
 WORKDIR ${WORDPRESS_ROOT}
 
