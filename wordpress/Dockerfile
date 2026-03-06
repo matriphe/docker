@@ -22,10 +22,13 @@ RUN set -eux; \
     mkdir -p "${WORDPRESS_ROOT}"; \
     cp -r /var/www/html/* "${WORDPRESS_ROOT}"; \
     rm -rf /var/www/html; \
-    sed -i "s|/var/www/html|${WORDPRESS_ROOT}|" /usr/local/etc/php-fpm.d/www.conf; \
-    apk add --no-cache jq nano; \
-    pecl install opentelemetry; \
-    docker-php-ext-enable opentelemetry
+    sed -i "s|/var/www/html|${WORDPRESS_ROOT}|g" /usr/local/etc/php-fpm.d/www.conf; \
+    apk add --no-cache jq nano curl; \
+    curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions; \
+    chmod +x /usr/local/bin/install-php-extensions; \
+    install-php-extensions opentelemetry; \
+    rm /usr/local/bin/install-php-extensions; \
+    rm -rf /tmp/* /var/tmp/*
 
 WORKDIR ${WORDPRESS_ROOT}
 

@@ -42,17 +42,10 @@ WORKDIR ${WORKDIR}
 
 RUN set -eux; \
     apk add --no-cache ${RUNTIME_DEPS}; \
-    apk add --no-cache --virtual .build-deps \
-        $PHPIZE_DEPS \
-        ${BUILD_DEPS}; \
-    # gd requires pre-configuration for FreeType, JPEG, and WebP support.
-    # opcache is explicitly installed here to ensure it's correctly compiled 
-    # and enabled with the specified optimizations.
-    docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp; \
-    docker-php-ext-install -j"${JOB_NUM:-$(nproc)}" gd opcache ${PHP_EXTENSIONS}; \
-    pecl install ${PECL_EXTENSIONS}; \
-    docker-php-ext-enable ${PECL_EXTENSIONS}; \
-    apk del .build-deps; \
+    curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions; \
+    chmod +x /usr/local/bin/install-php-extensions; \
+    install-php-extensions gd opcache ${PHP_EXTENSIONS} ${PECL_EXTENSIONS}; \
+    rm /usr/local/bin/install-php-extensions; \
     rm -rf /tmp/* /var/tmp/*
 
 # We use UID 82 (the Alpine default for www-data) to ensure consistent 
