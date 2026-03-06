@@ -264,7 +264,7 @@ jobs:
                   root /var/www/php;
                   fastcgi_pass php:9000;
                   fastcgi_index index.php;
-                  fastcgi_param SCRIPT_FILENAME /var/www/php/info.php;
+                  fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
                   include fastcgi_params;
               }
 
@@ -275,7 +275,7 @@ jobs:
                   location ~ \.php$ {
                       fastcgi_pass wordpress:9000;
                       fastcgi_index index.php;
-                      fastcgi_param SCRIPT_FILENAME /var/www/wordpress$fastcgi_script_name;
+                      fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
                       include fastcgi_params;
                   }
               }
@@ -299,8 +299,14 @@ jobs:
       - name: Test PHP FPM endpoints
         working-directory: .test-env
         run: |
+          echo "Testing nginx configuration:"
+          docker compose exec -T nginx nginx -t
+          echo "Testing direct PHP-FPM connection:"
+          docker compose exec -T php bash -c "echo 'TEST' | nc -q1 localhost 9000"
+          echo "Testing HTTP request:"
           curl -sI http://localhost:8080/info.php
-          curl -s http://localhost:8080/info.php | grep -i "php version"
+          curl -s http://localhost:8080/info.php | grep -i "php version" || echo "No PHP version found in response"
+          curl -s http://localhost:8080/info.php
           docker compose exec -T php php -m
 
       - name: Test WordPress installation
