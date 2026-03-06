@@ -5,10 +5,14 @@ on:
     workflows: ["Build"]
     types:
       - completed
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - '.github/workflows/test.yml'
 
 jobs:
   test:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
