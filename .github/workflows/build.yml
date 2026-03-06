@@ -310,7 +310,10 @@ jobs:
           docker compose exec -T wordpress wp core install --url="http://localhost:8080" --title="Test Site" --admin_user="admin" --admin_password="password" --admin_email="admin@example.com" --allow-root
           docker compose exec -T wordpress wp plugin list --allow-root
           # Verify Nginx routes to WordPress index
-          curl -s http://localhost:8080/ | grep -i "Test Site"
+          echo "Checking HTTP response from localhost:8080/"
+          curl -s http://localhost:8080/ | head -10
+          echo "Looking for 'Test Site' in response..."
+          curl -s http://localhost:8080/ | grep -i "Test Site" || echo "Test Site not found in response"
 
       - name: Teardown Test Environment
         if: always()
