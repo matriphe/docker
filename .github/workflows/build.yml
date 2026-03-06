@@ -279,9 +279,14 @@ jobs:
         run: |
           docker compose up -d --wait
           docker compose ps
-          # Inject info.php into PHP container
+          # Inject info.php into shared volume so nginx can access it
           docker compose exec -u root -T php sh -c "mkdir -p /var/www/php && echo '<?php phpinfo(); ?>' > /var/www/php/info.php"
           docker compose exec -u root -T php chown www-data:www-data /var/www/php/info.php
+          # Verify the file exists in the shared volume
+          echo "Checking if info.php exists in PHP container:"
+          docker compose exec -T php ls -la /var/www/php/info.php
+          echo "Checking if nginx can access the file:"
+          docker compose exec -T nginx ls -la /var/www/php/info.php || echo "File not accessible from nginx"
 
       - name: Test PHP FPM endpoints
         working-directory: .test-env
