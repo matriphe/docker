@@ -64,9 +64,9 @@ RUN set -eux; \
     chown -R "${USER}:${USER}" "${WORKDIR}"; \
     chmod -R 755 "${WORKDIR}"
 
-COPY config/php/php.ini /usr/local/etc/php/php.ini
-COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
-COPY config/php/php-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
+COPY config/php.ini /usr/local/etc/php/php.ini
+COPY config/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY php/fpm/config/php-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
 
 RUN set -eux; \
     sed -i "s/www-data/${USER}/g" /usr/local/etc/php-fpm.d/www.conf

@@ -14,9 +14,9 @@ ENV WORDPRESS_ROOT=${WORKDIR} \
 COPY --from=wp_cli /usr/local/bin/wp /usr/local/bin/wp
 COPY --from=composer_bin /usr/bin/composer /usr/bin/composer
 
-COPY --chown=www-data:www-data config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
-COPY --chown=www-data:www-data config/php/php.ini /usr/local/etc/php/php.ini
-COPY --chown=www-data:www-data config/wordpress/wp-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
+COPY --chown=www-data:www-data config/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY --chown=www-data:www-data config/php.ini /usr/local/etc/php/php.ini
+COPY --chown=www-data:www-data wordpress/config/wp-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
 
 RUN set -eux; \
     mkdir -p "${WORDPRESS_ROOT}"; \
