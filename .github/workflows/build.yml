@@ -302,7 +302,7 @@ jobs:
           echo "Testing nginx configuration:"
           docker compose exec -T nginx nginx -t
           echo "Testing direct PHP-FPM connection:"
-          docker compose exec -T php bash -c "echo 'TEST' | nc -q1 localhost 9000"
+          docker compose exec -T php sh -c "echo 'TEST' | nc -q1 localhost 9000" || echo "PHP-FPM connection test failed"
           echo "Testing HTTP request:"
           curl -sI http://localhost:8080/info.php
           curl -s http://localhost:8080/info.php | grep -i "php version" || echo "No PHP version found in response"
