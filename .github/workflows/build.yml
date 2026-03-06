@@ -36,14 +36,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache Super-Linter
-        uses: actions/cache@v4
-        with:
-          path: /usr/local/lib/hostedtoolcache
-          key: ${{ runner.os }}-super-linter-${{ hashFiles('**/action.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-super-linter-
-
       - name: Lint changed files with Super-Linter
         uses: super-linter/super-linter/slim@v7.4.0
         env:
