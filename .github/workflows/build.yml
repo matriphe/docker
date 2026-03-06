@@ -302,8 +302,10 @@ jobs:
       - name: Test WordPress installation
         working-directory: .test-env
         run: |
+          # Check what WordPress files exist
+          docker compose exec -T wordpress ls -la /var/www/html/ | grep wp-config
           # Remove existing config if it exists
-          docker compose exec -T wordpress rm -f /var/www/html/wp-config.php || true
+          docker compose exec -T wordpress find /var/www/html -name "wp-config.php" -delete || true
           docker compose exec -T wordpress wp core config --dbhost=db --dbname=wordpress --dbuser=wordpress --dbpass=wordpress --allow-root
           docker compose exec -T wordpress wp core install --url="http://localhost:8080" --title="Test Site" --admin_user="admin" --admin_password="password" --admin_email="admin@example.com" --allow-root
           docker compose exec -T wordpress wp plugin list --allow-root
