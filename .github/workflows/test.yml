@@ -7,12 +7,11 @@ on:
       - completed
   pull_request:
     branches: [ "main" ]
-    paths:
-      - '.github/workflows/test.yml'
+    types: [opened, synchronize, reopened]
 
 jobs:
   test:
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'pull_request' }}
+    if: ${{ (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.workflow == 'Build') || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,35 +27,92 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Wait for Build completion (PR only)
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Waiting for Build workflow to complete..."
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          echo "Checking branch: $BRANCH_NAME"
+          
+          # Wait up to 10 minutes for Build workflow to complete
+          for i in {1..60}; do
+            BUILD_STATUS=$(gh run list --workflow=Build --branch="$BRANCH_NAME" --limit=1 --json conclusion --jq '.[0].conclusion' 2>/dev/null || echo "running")
+            if [ "$BUILD_STATUS" = "success" ]; then
+              echo "✓ Build workflow completed successfully"
+              break
+            elif [ "$BUILD_STATUS" = "failure" ] || [ "$BUILD_STATUS" = "cancelled" ]; then
+              echo "✗ Build workflow failed or was cancelled"
+              exit 1
+            fi
+            echo "Waiting for Build workflow... ($i/60) - Status: $BUILD_STATUS"
+            sleep 10
+          done
+
       - name: Determine Tags
         id: tags
         run: |
-          PR_NUMBER="${{ github.event.workflow_run.pull_requests[0].number }}"
-          EVENT_NAME="${{ github.event.workflow_run.event }}"
+          # Set default main branch tags
           MAIN_NGINX_TAG="otel"
           MAIN_PHP_TAG="8.4-fpm"
           MAIN_WP_TAG="php8.4-fpm"
-
+          
+          # Initialize with main branch tags
           NGINX_TAG=$MAIN_NGINX_TAG
           PHP_TAG=$MAIN_PHP_TAG
           WP_TAG=$MAIN_WP_TAG
-
+          
+          # Get PR info based on trigger type
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            PR_NUMBER="${{ github.event.workflow_run.pull_requests[0].number }}"
+            EVENT_NAME="${{ github.event.workflow_run.event }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            EVENT_NAME="pull_request"
+          else
+            PR_NUMBER=""
+            EVENT_NAME=""
+          fi
+          
+          echo "Event: $EVENT_NAME"
+          echo "PR Number: $PR_NUMBER"
+          
+          # Try to use PR-specific tags if this is a PR and images exist
           if [ "$EVENT_NAME" = "pull_request" ] && [ -n "$PR_NUMBER" ]; then
             PR_TAG="PR-${PR_NUMBER}"
+            echo "Checking for PR tag: $PR_TAG"
+            
+            # Check nginx image
             if docker manifest inspect ghcr.io/${{ github.repository }}/nginx:${PR_TAG} > /dev/null 2>&1; then
               NGINX_TAG=$PR_TAG
-              echo "Found Nginx PR built image: $NGINX_TAG"
+              echo "✓ Found Nginx PR built image: $NGINX_TAG"
+            else
+              echo "✗ Nginx PR image not found, using main tag: $MAIN_NGINX_TAG"
             fi
+            
+            # Check php image
             if docker manifest inspect ghcr.io/${{ github.repository }}/php:${PR_TAG} > /dev/null 2>&1; then
               PHP_TAG=$PR_TAG
-              echo "Found PHP PR built image: $PHP_TAG"
+              echo "✓ Found PHP PR built image: $PHP_TAG"
+            else
+              echo "✗ PHP PR image not found, using main tag: $MAIN_PHP_TAG"
             fi
+            
+            # Check wordpress image
             if docker manifest inspect ghcr.io/${{ github.repository }}/wordpress:${PR_TAG} > /dev/null 2>&1; then
               WP_TAG=$PR_TAG
-              echo "Found WordPress PR built image: $WP_TAG"
+              echo "✓ Found WordPress PR built image: $WP_TAG"
+            else
+              echo "✗ WordPress PR image not found, using main tag: $MAIN_WP_TAG"
             fi
+          else
+            echo "Using main branch tags (not a PR or no PR number)"
           fi
-
+          
+          echo "Final tags:"
+          echo "nginx=$NGINX_TAG"
+          echo "php=$PHP_TAG"
+          echo "wordpress=$WP_TAG"
+          
           echo "nginx=$NGINX_TAG" >> "$GITHUB_OUTPUT"
           echo "php=$PHP_TAG" >> "$GITHUB_OUTPUT"
           echo "wordpress=$WP_TAG" >> "$GITHUB_OUTPUT"
