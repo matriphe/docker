@@ -6,6 +6,9 @@ This is a collection of `Dockerfiles` to build custom images used by Muhammad Za
 
 Custom OpenResty image based on `openresty/openresty:alpine`, built from [`nginx`](nginx). OpenResty is Nginx with Lua scripting capabilities, providing enhanced flexibility and performance.
 
+> [!IMPORTANT]
+> **Legacy Image:** `nginx:otel` is now considered legacy and is no longer maintained. It has been replaced by `nginx:openresty`. All users should migrate to the new image for continued support and updates.
+
 ### Features
 - Same configuration compatibility as Nginx
 - Lua scripting support for custom logic
