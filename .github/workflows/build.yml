@@ -293,6 +293,10 @@ jobs:
         run: |
           echo "Testing nginx configuration:"
           docker compose exec -T nginx nginx -t
+          echo "Checking nginx config files:"
+          docker compose exec -T nginx ls -la /etc/nginx/conf.d/
+          echo "Showing our config file:"
+          docker compose exec -T nginx cat /etc/nginx/conf.d/test.conf
           echo "Testing direct PHP-FPM connection:"
           docker compose exec -T php sh -c "echo 'TEST' | nc -q1 localhost 9000" || echo "PHP-FPM connection test failed"
           echo "Testing HTTP request:"
