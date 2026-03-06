@@ -75,12 +75,19 @@ jobs:
                 - wp_data:/var/www/wordpress:ro
                 - php_data:/var/www/php:ro
               depends_on:
-                - php
-                - wordpress
+                php:
+                  condition: service_healthy
+                wordpress:
+                  condition: service_healthy
             php:
               image: ghcr.io/${{ github.repository }}/php:${{ steps.tags.outputs.php }}
               volumes:
                 - php_data:/var/www/php:rw
+              healthcheck:
+                test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
+                interval: 5s
+                timeout: 5s
+                retries: 5
             wordpress:
               user: root
               image: ghcr.io/${{ github.repository }}/wordpress:${{ steps.tags.outputs.wordpress }}
@@ -92,7 +99,13 @@ jobs:
                 - WORDPRESS_DB_PASSWORD=wordpress
                 - WORDPRESS_DB_NAME=wordpress
               depends_on:
-                - db
+                db:
+                  condition: service_healthy
+              healthcheck:
+                test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
+                interval: 5s
+                timeout: 5s
+                retries: 5
             db:
               image: mariadb:10.11
               environment:
@@ -100,6 +113,11 @@ jobs:
                 - MYSQL_DATABASE=wordpress
                 - MYSQL_USER=wordpress
                 - MYSQL_PASSWORD=wordpress
+              healthcheck:
+                test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+                interval: 5s
+                timeout: 5s
+                retries: 5
           EOF
 
           cat << 'EOF' > .test-env/nginx.conf
@@ -133,9 +151,7 @@ jobs:
       - name: Start Docker Compose
         working-directory: .test-env
         run: |
-          docker compose up -d
-          # Wait for services to be ready
-          sleep 20
+          docker compose up -d --wait
           docker compose ps
           # Inject info.php into PHP container
           docker compose exec -u root -T php sh -c "mkdir -p /var/www/php && echo '<?php phpinfo(); ?>' > /var/www/php/info.php"
