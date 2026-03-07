@@ -16,7 +16,7 @@ ARG RUNTIME_DEPS="git pkgconf fcgi zip unzip curl \
 ARG BUILD_DEPS="zlib-dev libzip-dev libpng-dev libwebp-dev libxpm-dev libjpeg-turbo-dev freetype-dev libxml2-dev icu-dev oniguruma-dev curl-dev"
 
 ARG PHP_EXTENSIONS="pdo pdo_mysql xml mbstring exif bcmath intl zip curl"
-ARG PECL_EXTENSIONS="apcu excimer opentelemetry"
+ARG PECL_EXTENSIONS="apcu excimer"
 # Build concurrency argument to speed up extension compilation 
 # on multi-core systems (e.g., -j$(nproc))
 ARG JOB_NUM=""
@@ -42,9 +42,15 @@ WORKDIR ${WORKDIR}
 
 RUN set -eux; \
     apk add --no-cache ${RUNTIME_DEPS}; \
+    apk add --no-cache autoconf automake libtool make g++ gcc musl-dev; \
     curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions; \
     chmod +x /usr/local/bin/install-php-extensions; \
     install-php-extensions gd opcache ${PHP_EXTENSIONS} ${PECL_EXTENSIONS}; \
+    # Install OpenTelemetry extension explicitly
+    pecl install opentelemetry; \
+    docker-php-ext-enable opentelemetry; \
+    # Remove build dependencies and clean up
+    apk del --no-cache autoconf automake libtool make g++ gcc musl-dev; \
     rm /usr/local/bin/install-php-extensions; \
     rm -rf /tmp/* /var/tmp/*
 

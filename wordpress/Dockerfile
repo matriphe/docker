@@ -24,9 +24,15 @@ RUN set -eux; \
     rm -rf /var/www/html; \
     sed -i "s|/var/www/html|${WORDPRESS_ROOT}|g" /usr/local/etc/php-fpm.d/www.conf; \
     apk add --no-cache jq nano curl; \
+    apk add --no-cache autoconf automake libtool make g++ gcc musl-dev; \
     curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions; \
     chmod +x /usr/local/bin/install-php-extensions; \
     install-php-extensions opentelemetry; \
+    # Install OpenTelemetry extension explicitly (in case install-php-extensions skipped it)
+    pecl install opentelemetry; \
+    docker-php-ext-enable opentelemetry; \
+    # Remove build dependencies and clean up
+    apk del --no-cache autoconf automake libtool make g++ gcc musl-dev; \
     rm /usr/local/bin/install-php-extensions; \
     rm -rf /tmp/* /var/tmp/*
 
