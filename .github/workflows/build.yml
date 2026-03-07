@@ -1,3 +1,4 @@
+---
 name: Build
 
 # This workflow uses actions that are not certified by GitHub.
@@ -7,13 +8,15 @@ name: Build
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   schedule:
-    - cron: '0 4 * * 5' # at 04:00 UTC on Friday (05:00/06:00 Europe/Berlin depending DST; 0 is Sunday, 5 is Friday)
+    # at 04:00 UTC on Friday (05:00/06:00 Europe/Berlin depending DST)
+    # 0 is Sunday, 5 is Friday
+    - cron: '0 4 * * 5'
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
+    tags: ['v*.*.*']
     paths:
       - 'nginx/**'
       - 'php/**'
@@ -54,7 +57,9 @@ concurrency:
 
 jobs:
   php_version:
-    if: ${{ always() && (needs.detect-changes.outputs.php == 'true' || needs.detect-changes.outputs.wordpress == 'true') }}
+    if: >-
+      ${{ always() && (needs.detect-changes.outputs.php == 'true' ||
+      needs.detect-changes.outputs.wordpress == 'true') }}
     needs: [detect-changes]
     runs-on: ubuntu-latest
     outputs:
@@ -137,13 +142,18 @@ jobs:
       context: .
       file: ./nginx/Dockerfile
       image_name: matriphe/docker/nginx
-      image_tag: ${{ github.event_name == 'pull_request' && format('PR-{0}', github.event.pull_request.number || github.run_number) || 'otel' }}
+      image_tag: >-
+        ${{ github.event_name == 'pull_request' &&
+        format('PR-{0}', github.event.pull_request.number || github.run_number) ||
+        'otel' }}
       push_image: true
       sign_image: ${{ github.event_name != 'pull_request' }}
     secrets: inherit
 
   php-fpm:
-    if: ${{ always() && needs.php_version.result == 'success' && needs.detect-changes.outputs.php == 'true' }}
+    if: >-
+      ${{ always() && needs.php_version.result == 'success' &&
+      needs.detect-changes.outputs.php == 'true' }}
     needs: [php_version, detect-changes]
     permissions:
       contents: read
@@ -154,7 +164,10 @@ jobs:
       context: .
       file: ./php/fpm/Dockerfile
       image_name: matriphe/docker/php
-      image_tag: ${{ github.event_name == 'pull_request' && format('PR-{0}', github.event.pull_request.number || github.run_number) || format('{0}-fpm', needs.php_version.outputs.php_version) }}
+      image_tag: >-
+        ${{ github.event_name == 'pull_request' &&
+        format('PR-{0}', github.event.pull_request.number || github.run_number) ||
+        format('{0}-fpm', needs.php_version.outputs.php_version) }}
       build_args: |
         PHP_VERSION=${{ needs.php_version.outputs.php_version }}
       push_image: true
@@ -162,7 +175,9 @@ jobs:
     secrets: inherit
 
   wordpress:
-    if: ${{ always() && needs.php_version.result == 'success' && needs.detect-changes.outputs.wordpress == 'true' }}
+    if: >-
+      ${{ always() && needs.php_version.result == 'success' &&
+      needs.detect-changes.outputs.wordpress == 'true' }}
     needs: [php_version, detect-changes]
     permissions:
       contents: read
@@ -173,7 +188,10 @@ jobs:
       context: .
       file: ./wordpress/Dockerfile
       image_name: matriphe/docker/wordpress
-      image_tag: ${{ github.event_name == 'pull_request' && format('PR-{0}', github.event.pull_request.number || github.run_number) || format('php{0}-fpm', needs.php_version.outputs.php_version) }}
+      image_tag: >-
+        ${{ github.event_name == 'pull_request' &&
+        format('PR-{0}', github.event.pull_request.number || github.run_number) ||
+        format('php{0}-fpm', needs.php_version.outputs.php_version) }}
       build_args: |
         PHP_VERSION=${{ needs.php_version.outputs.php_version }}
       push_image: true
@@ -187,7 +205,8 @@ jobs:
       (needs.nginx.result == 'success' ||
        needs.php-fpm.result == 'success' ||
        needs.wordpress.result == 'success' ||
-       (github.event_name == 'workflow_dispatch' && github.event.inputs.run_tests_only == 'true'))
+       (github.event_name == 'workflow_dispatch' &&
+        github.event.inputs.run_tests_only == 'true'))
     uses: ./.github/workflows/test.yml
     with:
       pr_number: ${{ github.event.pull_request.number || '' }}

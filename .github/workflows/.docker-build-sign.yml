@@ -1,3 +1,4 @@
+---
 name: Reusable Docker Build and Sign
 
 on:
@@ -70,7 +71,8 @@ jobs:
         id: meta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
-          images: ${{ env.REGISTRY }}/${{ inputs.image_name != '' && inputs.image_name || github.repository }}
+          images: ${{ env.REGISTRY }}/${{ inputs.image_name != '' &&
+            inputs.image_name || github.repository }}
 
       - name: Build and push Docker image
         id: build-and-push
@@ -84,11 +86,15 @@ jobs:
           platforms: ${{ inputs.platforms }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: ${{ env.REGISTRY }}/${{ inputs.image_name != '' && inputs.image_name || github.repository }}:${{ inputs.image_tag }}
+          tags: >-
+            ${{ env.REGISTRY }}/${{ inputs.image_name != '' &&
+            inputs.image_name || github.repository }}:${{ inputs.image_tag }}
 
       - name: Sign the published Docker image
         if: ${{ inputs.sign_image }}
         env:
-          TAGS: ${{ env.REGISTRY }}/${{ inputs.image_name != '' && inputs.image_name || github.repository }}:${{ inputs.image_tag }}
+          TAGS: >-
+            ${{ env.REGISTRY }}/${{ inputs.image_name != '' &&
+            inputs.image_name || github.repository }}:${{ inputs.image_tag }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
