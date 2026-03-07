@@ -15,13 +15,11 @@ on:
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
     paths:
-      - '**/Dockerfile' # Trigger on changes to any Dockerfile
-      - '**/docker-compose.yml' # Optionally include docker-compose.yml if needed
-      - '.github/workflows/**' # Trigger on workflow changes
-      - 'nginx/**' # Trigger on nginx build context changes
-      - 'config/php/**' # Trigger on shared PHP config changes
-      - 'php/fpm/**' # Trigger on PHP-FPM build context changes
-      - 'wordpress/**' # Trigger on WordPress build context changes
+      - 'nginx/**'
+      - 'php/**'
+      - 'config/**'
+      - 'wordpress/**'
+      - '.github/workflows/**'
   workflow_dispatch:
     inputs:
       rebuild_all:
@@ -55,28 +53,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
-    if: ${{ github.event_name == 'pull_request' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Lint changed files with Super-Linter
-        uses: super-linter/super-linter/slim@v7.4.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALIDATE_ALL_CODEBASE: false
-          VALIDATE_CHECKOV: false
-          VALIDATE_JSCPD: false
-          VALIDATE_DOCKERFILE_HADOLINT: false
-          FILTER_REGEX_INCLUDE: '(^|/)(Dockerfile|\\.github/workflows/.*\\.ya?ml|.*\\.md)$'
-
   php_version:
+    if: ${{ always() && (needs.detect-changes.outputs.php == 'true' || needs.detect-changes.outputs.wordpress == 'true') }}
+    needs: [detect-changes]
     runs-on: ubuntu-latest
     outputs:
       php_version: ${{ steps.vars.outputs.php_version }}
@@ -139,8 +118,8 @@ jobs:
           fi
 
   nginx:
-    if: ${{ always() && needs.detect-changes.outputs.nginx == 'true' && (github.event_name != 'pull_request' || needs.checks.result == 'success') }}
-    needs: [checks, detect-changes]
+    if: ${{ always() && needs.detect-changes.outputs.nginx == 'true' }}
+    needs: [detect-changes]
     permissions:
       contents: read
       packages: write
@@ -156,8 +135,8 @@ jobs:
     secrets: inherit
 
   php-fpm:
-    if: ${{ always() && needs.php_version.result == 'success' && needs.detect-changes.outputs.php == 'true' && (github.event_name != 'pull_request' || needs.checks.result == 'success') }}
-    needs: [checks, php_version, detect-changes]
+    if: ${{ always() && needs.php_version.result == 'success' && needs.detect-changes.outputs.php == 'true' }}
+    needs: [php_version, detect-changes]
     permissions:
       contents: read
       packages: write
@@ -175,8 +154,8 @@ jobs:
     secrets: inherit
 
   wordpress:
-    if: ${{ always() && needs.php_version.result == 'success' && needs.detect-changes.outputs.wordpress == 'true' && (github.event_name != 'pull_request' || needs.checks.result == 'success') }}
-    needs: [checks, php_version, detect-changes]
+    if: ${{ always() && needs.php_version.result == 'success' && needs.detect-changes.outputs.wordpress == 'true' }}
+    needs: [php_version, detect-changes]
     permissions:
       contents: read
       packages: write
@@ -193,207 +172,15 @@ jobs:
       sign_image: ${{ github.event_name != 'pull_request' }}
     secrets: inherit
 
-  test:
-    if: ${{ always() && needs.php_version.result == 'success' && (github.event_name != 'pull_request' || needs.checks.result == 'success') && (needs.nginx.result == 'success' || needs.php-fpm.result == 'success' || needs.wordpress.result == 'success' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_tests_only == 'true')) }}
-    needs: [checks, php_version, nginx, php-fpm, wordpress, detect-changes]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log into registry ghcr.io
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Determine Tags
-        id: tags
-        run: |
-          # Set default main branch tags
-          MAIN_NGINX_TAG="otel"
-          MAIN_PHP_TAG="8.4-fpm"
-          MAIN_WP_TAG="php8.4-fpm"
-          
-          # Initialize with main branch tags
-          NGINX_TAG=$MAIN_NGINX_TAG
-          PHP_TAG=$MAIN_PHP_TAG
-          WP_TAG=$MAIN_WP_TAG
-          
-          # Check if this is a PR
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            PR_NUMBER="${{ github.event.pull_request.number }}"
-            PR_TAG="PR-${PR_NUMBER}"
-            echo "Checking for PR tag: $PR_TAG"
-            
-            # Check nginx image
-            if docker manifest inspect ghcr.io/${{ github.repository }}/nginx:${PR_TAG} > /dev/null 2>&1; then
-              NGINX_TAG=$PR_TAG
-              echo "✓ Found Nginx PR built image: $NGINX_TAG"
-            else
-              echo "✗ Nginx PR image not found, using main tag: $MAIN_NGINX_TAG"
-            fi
-            
-            # Check php image
-            if docker manifest inspect ghcr.io/${{ github.repository }}/php:${PR_TAG} > /dev/null 2>&1; then
-              PHP_TAG=$PR_TAG
-              echo "✓ Found PHP PR built image: $PHP_TAG"
-            else
-              echo "✗ PHP PR image not found, using main tag: $MAIN_PHP_TAG"
-            fi
-            
-            # Check wordpress image
-            if docker manifest inspect ghcr.io/${{ github.repository }}/wordpress:${PR_TAG} > /dev/null 2>&1; then
-              WP_TAG=$PR_TAG
-              echo "✓ Found WordPress PR built image: $WP_TAG"
-            else
-              echo "✗ WordPress PR image not found, using main tag: $MAIN_WP_TAG"
-            fi
-          else
-            echo "Using main branch tags"
-          fi
-          
-          echo "Final tags:"
-          echo "nginx=$NGINX_TAG"
-          echo "php=$PHP_TAG"
-          echo "wordpress=$WP_TAG"
-          
-          echo "nginx=$NGINX_TAG" >> "$GITHUB_OUTPUT"
-          echo "php=$PHP_TAG" >> "$GITHUB_OUTPUT"
-          echo "wordpress=$WP_TAG" >> "$GITHUB_OUTPUT"
-
-      - name: Setup Test Environment
-        run: |
-          mkdir -p .test-env
-          cat << 'EOF' > .test-env/docker-compose.yml
-          volumes:
-            wp_data:
-            php_data:
-            
-          services:
-            nginx:
-              image: ghcr.io/${{ github.repository }}/nginx:${{ steps.tags.outputs.nginx }}
-              ports:
-                - "8080:80"
-              volumes:
-                - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-                - wp_data:/var/www/wordpress:ro
-                - php_data:/var/www/php:ro
-              depends_on:
-                php:
-                  condition: service_healthy
-                wordpress:
-                  condition: service_healthy
-            php:
-              image: ghcr.io/${{ github.repository }}/php:${{ steps.tags.outputs.php }}
-              volumes:
-                - php_data:/var/www/php:rw
-              healthcheck:
-                test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
-                interval: 5s
-                timeout: 5s
-                retries: 5
-            wordpress:
-              user: root
-              image: ghcr.io/${{ github.repository }}/wordpress:${{ steps.tags.outputs.wordpress }}
-              volumes:
-                - wp_data:/var/www/wordpress:rw
-              environment:
-                - WORDPRESS_DB_HOST=db
-                - WORDPRESS_DB_USER=wordpress
-                - WORDPRESS_DB_PASSWORD=wordpress
-                - WORDPRESS_DB_NAME=wordpress
-              depends_on:
-                db:
-                  condition: service_healthy
-              healthcheck:
-                test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
-                interval: 5s
-                timeout: 5s
-                retries: 5
-            db:
-              image: mariadb:10.11
-              environment:
-                - MYSQL_ROOT_PASSWORD=root
-                - MYSQL_DATABASE=wordpress
-                - MYSQL_USER=wordpress
-                - MYSQL_PASSWORD=wordpress
-              healthcheck:
-                test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-                interval: 5s
-                timeout: 5s
-                retries: 5
-          EOF
-
-          cat << 'EOF' > .test-env/nginx.conf
-          server {
-              listen 80;
-              server_name localhost;
-              index index.php index.html;
-
-              location /info.php {
-                  root /var/www/php;
-                  fastcgi_pass php:9000;
-                  fastcgi_index index.php;
-                  fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-                  include fastcgi_params;
-              }
-
-              location / {
-                  root /var/www/wordpress;
-                  try_files $uri $uri/ /index.php?$args;
-                  
-                  location ~ \.php$ {
-                      fastcgi_pass wordpress:9000;
-                      fastcgi_index index.php;
-                      fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-                      include fastcgi_params;
-                  }
-              }
-          }
-          EOF
-
-      - name: Start Docker Compose
-        working-directory: .test-env
-        run: |
-          docker compose up -d --wait
-          docker compose ps
-          # Inject info.php into shared volume so nginx can access it
-          docker compose exec -u root -T php sh -c "mkdir -p /var/www/php && echo '<?php phpinfo(); ?>' > /var/www/php/info.php"
-          docker compose exec -u root -T php chown www-data:www-data /var/www/php/info.php
-          # Verify the file exists in the shared volume
-          echo "Checking if info.php exists in PHP container:"
-          docker compose exec -T php ls -la /var/www/php/info.php
-          echo "Checking if nginx can access the file:"
-          docker compose exec -T nginx ls -la /var/www/php/info.php || echo "File not accessible from nginx"
-
-      - name: Test PHP FPM endpoints
-        working-directory: .test-env
-        run: |
-          echo "Testing nginx configuration:"
-          docker compose exec -T nginx nginx -t
-          echo "Testing HTTP request:"
-          curl -sI http://localhost:8080/info.php
-          curl -s http://localhost:8080/info.php | grep -i "php version"
-          curl -s http://localhost:8080/info.php
-          docker compose exec -T php php -m
-
-      - name: Test WordPress installation
-        working-directory: .test-env
-        run: |
-          # Remove existing config if it exists (WordPress uses /var/www/wordpress/ not /var/www/html/)
-          docker compose exec -T wordpress rm -f /var/www/wordpress/wp-config.php || true
-          docker compose exec -T wordpress wp core config --dbhost=db --dbname=wordpress --dbuser=wordpress --dbpass=wordpress --allow-root
-          docker compose exec -T wordpress wp core install --url="http://localhost:8080" --title="Test Site" --admin_user="admin" --admin_password="password" --admin_email="admin@example.com" --allow-root
-          docker compose exec -T wordpress wp plugin list --allow-root
-          # Verify Nginx routes to WordPress index
-          curl -s http://localhost:8080/ | grep -i "Test Site"
-
-      - name: Teardown Test Environment
-        if: always()
-        working-directory: .test-env
-        run: docker compose down -v
+  run-test:
+    needs: [nginx, php-fpm, wordpress]
+    if: >-
+      always() &&
+      (needs.nginx.result == 'success' ||
+       needs.php-fpm.result == 'success' ||
+       needs.wordpress.result == 'success' ||
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.run_tests_only == 'true'))
+    uses: ./.github/workflows/test.yml
+    with:
+      pr_number: ${{ github.event.pull_request.number || '' }}
+    secrets: inherit
