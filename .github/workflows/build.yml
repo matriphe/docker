@@ -24,6 +24,11 @@ on:
       - 'wordpress/**' # Trigger on WordPress build context changes
   workflow_dispatch:
     inputs:
+      rebuild_all:
+        description: 'Rebuild all images (nginx, PHP, WordPress)'
+        required: false
+        default: 'false'
+        type: boolean
       rebuild_nginx:
         description: 'Rebuild nginx image'
         required: false
@@ -44,6 +49,10 @@ on:
         required: false
         default: 'false'
         type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   checks:
@@ -76,9 +85,62 @@ jobs:
         id: vars
         run: echo "php_version=8.4" >> "$GITHUB_OUTPUT"
 
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      nginx: ${{ steps.set.outputs.nginx }}
+      php: ${{ steps.set.outputs.php }}
+      wordpress: ${{ steps.set.outputs.wordpress }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        with:
+          filters: |
+            nginx:
+              - 'nginx/**'
+              - '.github/workflows/**'
+            php:
+              - 'php/**'
+              - 'config/**'
+              - '.github/workflows/**'
+            wordpress:
+              - 'wordpress/**'
+              - 'config/**'
+              - '.github/workflows/**'
+
+      - name: Set outputs
+        id: set
+        run: |
+          EVENT="${{ github.event_name }}"
+          if [ "$EVENT" = "schedule" ]; then
+            echo "nginx=true"     >> "$GITHUB_OUTPUT"
+            echo "php=true"       >> "$GITHUB_OUTPUT"
+            echo "wordpress=true" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.rebuild_all }}" = "true" ]; then
+              echo "nginx=true"     >> "$GITHUB_OUTPUT"
+              echo "php=true"       >> "$GITHUB_OUTPUT"
+              echo "wordpress=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "nginx=${{ github.event.inputs.rebuild_nginx }}"         >> "$GITHUB_OUTPUT"
+              echo "php=${{ github.event.inputs.rebuild_php }}"             >> "$GITHUB_OUTPUT"
+              echo "wordpress=${{ github.event.inputs.rebuild_wordpress }}" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "nginx=${{ steps.filter.outputs.nginx }}"         >> "$GITHUB_OUTPUT"
+            echo "php=${{ steps.filter.outputs.php }}"             >> "$GITHUB_OUTPUT"
+            echo "wordpress=${{ steps.filter.outputs.wordpress }}" >> "$GITHUB_OUTPUT"
+          fi
+
   nginx:
-    if: ${{ always() && (github.event_name != 'pull_request' || needs.checks.result == 'success') && (github.event.inputs.rebuild_nginx != 'true' || github.event_name != 'workflow_dispatch') }}
-    needs: [checks]
+    if: ${{ always() && needs.detect-changes.outputs.nginx == 'true' && (github.event_name != 'pull_request' || needs.checks.result == 'success') }}
+    needs: [checks, detect-changes]
     permissions:
       contents: read
       packages: write
@@ -94,8 +156,8 @@ jobs:
     secrets: inherit
 
   php-fpm:
-    if: ${{ always() && needs.php_version.result == 'success' && (github.event_name != 'pull_request' || needs.checks.result == 'success') && (github.event.inputs.rebuild_php != 'true' || github.event_name != 'workflow_dispatch') }}
-    needs: [checks, php_version]
+    if: ${{ always() && needs.php_version.result == 'success' && needs.detect-changes.outputs.php == 'true' && (github.event_name != 'pull_request' || needs.checks.result == 'success') }}
+    needs: [checks, php_version, detect-changes]
     permissions:
       contents: read
       packages: write
@@ -113,8 +175,8 @@ jobs:
     secrets: inherit
 
   wordpress:
-    if: ${{ always() && needs.php_version.result == 'success' && (github.event_name != 'pull_request' || needs.checks.result == 'success') && (github.event.inputs.rebuild_wordpress != 'true' || github.event_name != 'workflow_dispatch') }}
-    needs: [checks, php_version]
+    if: ${{ always() && needs.php_version.result == 'success' && needs.detect-changes.outputs.wordpress == 'true' && (github.event_name != 'pull_request' || needs.checks.result == 'success') }}
+    needs: [checks, php_version, detect-changes]
     permissions:
       contents: read
       packages: write
@@ -132,8 +194,8 @@ jobs:
     secrets: inherit
 
   test:
-    if: ${{ always() && needs.php_version.result == 'success' && needs.checks.result == 'success' && needs.nginx.result == 'success' && needs.php-fpm.result == 'success' && needs.wordpress.result == 'success' && (github.event.inputs.run_tests_only != 'true' || github.event_name != 'workflow_dispatch') }}
-    needs: [checks, php_version, nginx, php-fpm, wordpress]
+    if: ${{ always() && needs.php_version.result == 'success' && (github.event_name != 'pull_request' || needs.checks.result == 'success') && (needs.nginx.result == 'success' || needs.php-fpm.result == 'success' || needs.wordpress.result == 'success' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_tests_only == 'true')) }}
+    needs: [checks, php_version, nginx, php-fpm, wordpress, detect-changes]
     runs-on: ubuntu-latest
     permissions:
       contents: read
