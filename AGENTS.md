@@ -10,19 +10,19 @@ This file provides guidance for AI agents working in this repository. It establi
 
 ### Agent Prefix Reference Table
 
-| Agent             | Prefix                |
-|-------------------|-----------------------|
-| Claude (Code)     | `[CLAUDE_AI]`         |
-| Gemini-CLI        | `[GEMINI_AI]`         |
-| Cursor            | `[CURSOR_AI]`         |
-| GitHub Copilot    | `[GITHUB_COPILOT_AI]` |
-| OpenAI Codex      | `[OPENAI_CODEX_AI]`   |
-| Windsurf/Cascade  | `[WINDSURF_AI]`       |
-| Opencode          | `[OPENCODE_AI]`       |
-| Antigravity       | `[ANTIGRAVITY_AI]`    |
-| AMP               | `[AMP_AI]`            |
-| Ollama            | `[OLLAMA_AI]`         |
-| Openclaw          | `[OPENCLAW_AI]`       |
+| Agent            | Prefix                |
+| ---------------- | --------------------- |
+| Claude (Code)    | `[CLAUDE_AI]`         |
+| Gemini-CLI       | `[GEMINI_AI]`         |
+| Cursor           | `[CURSOR_AI]`         |
+| GitHub Copilot   | `[GITHUB_COPILOT_AI]` |
+| OpenAI Codex     | `[OPENAI_CODEX_AI]`   |
+| Windsurf/Cascade | `[WINDSURF_AI]`       |
+| Opencode         | `[OPENCODE_AI]`       |
+| Antigravity      | `[ANTIGRAVITY_AI]`    |
+| AMP              | `[AMP_AI]`            |
+| Ollama           | `[OLLAMA_AI]`         |
+| Openclaw         | `[OPENCLAW_AI]`       |
 
 ---
 
@@ -38,10 +38,12 @@ This file provides guidance for AI agents working in this repository. It establi
 **Required:** Agents must include the LLM model name in the commit message body for traceability.
 
 For OpenAI Codex, use this model naming pattern in commit bodies:
+
 - `GPT-5.x-Codex (Medium)`
 - Replace `Medium` with the active mode when applicable (for example `Low` or `High`).
 
 **Common Model Examples:**
+
 - SWE-1.5, Gemini Flash 2.5, Gemini Pro
 - Claude Sonnet-4.5, Claude Opus-4.6
 - DeepseekR1
@@ -108,13 +110,17 @@ This pull requests adds rules to `AGENTS.md` that must be followed by any AI age
 ## Rationale
 
 ### Traceability
+
 Understanding which AI agent made specific changes helps track the origin of contributions and maintain a clear history of automated work.
 
 ### Accountability
+
 Tracking performance and patterns of different agents enables evaluation of their effectiveness and identification of improvements.
 
 ### Debugging
+
 When issues arise, knowing the context and capabilities behind changes helps understand why certain decisions were made and identify root causes.
 
 ### Documentation
+
 Maintaining clear history of automated contributions ensures future maintainers can understand the provenance and reasoning behind code changes.

@@ -51,9 +51,10 @@ RUN --mount=type=cache,target=/var/cache/apk \
     apk add --no-cache ${RUNTIME_DEPS}
 
 # Install build dependencies and compile PHP extensions
-# Cache mount preserves /var/cache/apk and /tmp between builds for faster installs
+# Cache mount preserves /var/cache/apk between builds for faster apk operations
+# Note: /tmp is not cached as the step ends with rm -rf /tmp/* which would empty
+# the cache, and GCC temp files from QEMU arm64 builds conflict with parallel amd64 builds
 RUN --mount=type=cache,target=/var/cache/apk \
-    --mount=type=cache,target=/tmp \
     set -eux; \
     apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \

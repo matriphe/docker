@@ -12,43 +12,43 @@ on:
   schedule:
     # at 04:00 UTC on Friday (05:00/06:00 Europe/Berlin depending DST)
     # 0 is Sunday, 5 is Friday
-    - cron: '0 4 * * 5'
+    - cron: "0 4 * * 5"
   push:
     branches: ["main"]
     # Publish semver tags as releases.
-    tags: ['v*.*.*']
+    tags: ["v*.*.*"]
     paths:
-      - 'nginx/**'
-      - 'php/**'
-      - 'config/**'
-      - 'wordpress/**'
-      - '.github/workflows/**'
+      - "nginx/**"
+      - "php/**"
+      - "config/**"
+      - "wordpress/**"
+      - ".github/workflows/**"
   workflow_dispatch:
     inputs:
       rebuild_all:
-        description: 'Rebuild all images (nginx, PHP, WordPress)'
+        description: "Rebuild all images (nginx, PHP, WordPress)"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
       rebuild_nginx:
-        description: 'Rebuild nginx image'
+        description: "Rebuild nginx image"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
       rebuild_php:
-        description: 'Rebuild PHP-FPM image'
+        description: "Rebuild PHP-FPM image"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
       rebuild_wordpress:
-        description: 'Rebuild WordPress image'
+        description: "Rebuild WordPress image"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
       run_tests_only:
-        description: 'Run tests only (skip builds)'
+        description: "Run tests only (skip builds)"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
 
 concurrency:

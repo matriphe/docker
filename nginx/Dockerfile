@@ -18,8 +18,9 @@ RUN --mount=type=cache,target=/var/cache/apk \
 
 # Download and install OpenTelemetry Collector binary
 # Separate step allows caching of architecture-specific binary downloads
-# Cache mount preserves /tmp between builds to avoid re-downloading on retry
-RUN --mount=type=cache,target=/tmp \
+# Cache mount preserves /var/cache/otelcol between builds with arch-specific filenames
+# to prevent amd64 and arm64 parallel builds from conflicting
+RUN --mount=type=cache,target=/var/cache/otelcol \
     set -eux; \
     echo "Installing OpenTelemetry Collector version ${OTEL_VERSION} for ${TARGETOS}/${TARGETARCH}"; \
     if [ "${TARGETARCH}" = "amd64" ] || [ "${TARGETARCH}" = "x86_64" ]; then \
@@ -30,11 +31,13 @@ RUN --mount=type=cache,target=/tmp \
         echo "Unsupported architecture: ${TARGETARCH}"; \
         exit 1; \
     fi && \
-    curl -fsSL -o /tmp/otelcol.tar.gz "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTEL_VERSION}/otelcol-contrib_${OTEL_VERSION}_${TARGETOS}_${ARCH}.tar.gz"; \
-    tar -xvf /tmp/otelcol.tar.gz -C /tmp otelcol-contrib; \
+    TARBALL="/var/cache/otelcol/otelcol-contrib_${OTEL_VERSION}_${TARGETOS}_${ARCH}.tar.gz"; \
+    if [ ! -f "${TARBALL}" ]; then \
+        curl -fsSL -o "${TARBALL}" "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTEL_VERSION}/otelcol-contrib_${OTEL_VERSION}_${TARGETOS}_${ARCH}.tar.gz"; \
+    fi; \
+    tar -xvf "${TARBALL}" -C /tmp otelcol-contrib; \
     chmod +x /tmp/otelcol-contrib; \
-    mv /tmp/otelcol-contrib /usr/bin/otelcol-contrib; \
-    rm -f /tmp/otelcol.tar.gz
+    mv /tmp/otelcol-contrib /usr/bin/otelcol-contrib
 
 # Configure user and permissions
 # Separate step for cacheability and clarity
