@@ -3,19 +3,19 @@ receivers:
   otlp/php:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317
+        endpoint: 0.0.0.0:${env:OTEL_RECEIVER_PORT_PHP:-4317}
 
-  # WordPress OTLP receiver  
+  # WordPress OTLP receiver
   otlp/wordpress:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4318
+        endpoint: 0.0.0.0:${env:OTEL_RECEIVER_PORT_WORDPRESS:-4318}
 
   # OpenResty OTLP receiver (for future enhancement)
   otlp/openresty:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4319
+        endpoint: 0.0.0.0:${env:OTEL_RECEIVER_PORT_OPENRESTY:-4319}
 
   # Keep existing log receivers
   filelog:

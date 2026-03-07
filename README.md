@@ -196,10 +196,33 @@ docker compose up -d
 - **OTLP Endpoint**: `4317`
 - **Configuration**: `config/php/php-instrumentation.ini`
 
-#### WordPress Monitoring  
+#### WordPress Monitoring
 - **Service Name**: `wordpress`
 - **OTLP Endpoint**: `4318`
 - **Configuration**: `config/wordpress/wp-instrumentation.ini`
+
+### OTel Collector Receiver Port Configuration
+
+The OTel Collector receiver ports can be customized via environment variables. This allows you to override default ports if needed for your deployment setup.
+
+| Environment Variable | Default Port | Purpose |
+|---|---|---|
+| `OTEL_RECEIVER_PORT_PHP` | `4317` | OTLP gRPC receiver port for PHP-FPM traces |
+| `OTEL_RECEIVER_PORT_WORDPRESS` | `4318` | OTLP gRPC receiver port for WordPress traces |
+| `OTEL_RECEIVER_PORT_OPENRESTY` | `4319` | OTLP gRPC receiver port for OpenResty traces (future) |
+
+**Example:** Override PHP-FPM receiver port in `docker-compose.yml`:
+
+```yaml
+otel-collector:
+  image: otel/opentelemetry-collector-contrib:latest
+  environment:
+    - OTEL_RECEIVER_PORT_PHP=14317
+  ports:
+    - "14317:14317"
+```
+
+The collector will bind to all interfaces (`0.0.0.0`) on the specified port. No environment variables are required—the collector uses defaults if not set.
 
 ### Performance Metrics
 
