@@ -8,6 +8,13 @@ name: Build
 on:
   pull_request:
     branches: [ "main" ]
+    paths:
+      - '**/Dockerfile'
+      - '.github/workflows/**'
+      - 'nginx/**'
+      - 'config/**'
+      - 'php/**'
+      - 'wordpress/**'
   schedule:
     - cron: '0 4 * * 5' # at 04:00 UTC on Friday (05:00/06:00 Europe/Berlin depending DST; 0 is Sunday, 5 is Friday)
   push:
@@ -16,11 +23,10 @@ on:
     tags: [ 'v*.*.*' ]
     paths:
       - '**/Dockerfile' # Trigger on changes to any Dockerfile
-      - '**/docker-compose.yml' # Optionally include docker-compose.yml if needed
       - '.github/workflows/**' # Trigger on workflow changes
       - 'nginx/**' # Trigger on nginx build context changes
-      - 'config/php/**' # Trigger on shared PHP config changes
-      - 'php/fpm/**' # Trigger on PHP-FPM build context changes
+      - 'config/**' # Trigger on shared config changes
+      - 'php/**' # Trigger on PHP build context changes
       - 'wordpress/**' # Trigger on WordPress build context changes
   workflow_dispatch:
     inputs:
@@ -132,7 +138,7 @@ jobs:
     secrets: inherit
 
   test:
-    if: ${{ always() && needs.php_version.result == 'success' && needs.checks.result == 'success' && needs.nginx.result == 'success' && needs.php-fpm.result == 'success' && needs.wordpress.result == 'success' && (github.event.inputs.run_tests_only != 'true' || github.event_name != 'workflow_dispatch') }}
+    if: ${{ always() && needs.php_version.result == 'success' && (github.event_name != 'pull_request' || needs.checks.result == 'success') && (needs.nginx.result == 'success' || needs.nginx.result == 'skipped') && (needs.php-fpm.result == 'success' || needs.php-fpm.result == 'skipped') && (needs.wordpress.result == 'success' || needs.wordpress.result == 'skipped') && (needs.nginx.result == 'success' || needs.php-fpm.result == 'success' || needs.wordpress.result == 'success') && (github.event.inputs.run_tests_only != 'true' || github.event_name != 'workflow_dispatch') }}
     needs: [checks, php_version, nginx, php-fpm, wordpress]
     runs-on: ubuntu-latest
     permissions:
