@@ -239,6 +239,9 @@ jobs:
                 - OTEL_SERVICE_NAME=php-fpm
               volumes:
                 - php_data:/var/www/php:rw
+              depends_on:
+                jaeger:
+                  condition: service_started
               healthcheck:
                 test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
                 interval: 5s
@@ -259,6 +262,8 @@ jobs:
               depends_on:
                 db:
                   condition: service_healthy
+                jaeger:
+                  condition: service_started
               healthcheck:
                 test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
                 interval: 5s
