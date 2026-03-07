@@ -63,24 +63,129 @@ The GitHub Actions Docker publish workflow runs on Friday at `04:00 UTC` (`05:00
 
 ## Monitoring Setup with OpenTelemetry
 
-### Production Setup
+### Production Setup with Sentry
 
 1. Copy and configure environment variables:
 ```bash
 cp .env.example .env
-# Edit .env with your Sentry DSN values
+# Edit .env with your Sentry DSN and service name values
 ```
 
-2. Start services with Docker Compose:
+2. Create `docker-compose.yml` with Sentry integration:
+```yaml
+services:
+  openresty:
+    image: ghcr.io/matriphe/docker/nginx:openresty
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      php-fpm:
+        condition: service_healthy
+
+  php-fpm:
+    image: ghcr.io/matriphe/docker/php:8.4-fpm
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - OTEL_SERVICE_NAME=php-fpm
+      - SENTRY_DSN=${SENTRY_DSN}
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  wordpress:
+    image: ghcr.io/matriphe/docker/wordpress:php8.4-fpm
+    environment:
+      - WORDPRESS_DB_HOST=db
+      - WORDPRESS_DB_USER=wordpress
+      - WORDPRESS_DB_PASSWORD=wordpress
+      - WORDPRESS_DB_NAME=wordpress
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - OTEL_SERVICE_NAME=wordpress
+      - SENTRY_DSN=${SENTRY_DSN}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:10.11
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_USER=wordpress
+      - MYSQL_PASSWORD=wordpress
+```
+
+3. Start services:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Development Setup with Jaeger
 
-For testing without external dependencies:
+For testing OpenTelemetry traces locally without external dependencies:
+
+1. Create `docker-compose.yml` with local Jaeger:
+```yaml
+services:
+  openresty:
+    image: ghcr.io/matriphe/docker/nginx:openresty
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      php-fpm:
+        condition: service_healthy
+
+  php-fpm:
+    image: ghcr.io/matriphe/docker/php:8.4-fpm
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_SERVICE_NAME=php-fpm
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  wordpress:
+    image: ghcr.io/matriphe/docker/wordpress:php8.4-fpm
+    environment:
+      - WORDPRESS_DB_HOST=db
+      - WORDPRESS_DB_USER=wordpress
+      - WORDPRESS_DB_PASSWORD=wordpress
+      - WORDPRESS_DB_NAME=wordpress
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_SERVICE_NAME=wordpress
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:10.11
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_USER=wordpress
+      - MYSQL_PASSWORD=wordpress
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+```
+
+2. Start services and view Jaeger UI:
 ```bash
-docker-compose -f docker-compose.dev.yml up -d
+docker compose up -d
 # Access Jaeger UI at http://localhost:16686
 ```
 
@@ -109,13 +214,19 @@ Each service captures:
 
 Check service health:
 ```bash
-docker-compose logs php-fpm
-docker-compose logs wordpress  
-docker-compose logs otel-collector
+docker compose logs php-fpm
+docker compose logs wordpress
+docker compose logs openresty
 ```
 
-Verify OpenTelemetry extension:
+Verify OpenTelemetry extension is loaded:
 ```bash
-docker-compose exec php-fpm php -m | grep opentelemetry
-docker-compose exec wordpress php -m | grep opentelemetry
+docker compose exec php-fpm php -m | grep opentelemetry
+docker compose exec wordpress php -m | grep opentelemetry
+```
+
+View OpenTelemetry traces in Jaeger (development only):
+```bash
+# Jaeger UI available at http://localhost:16686
+# Select service from dropdown: php-fpm or wordpress
 ```

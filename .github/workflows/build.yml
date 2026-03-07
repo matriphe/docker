@@ -153,7 +153,7 @@ jobs:
         id: tags
         run: |
           # Set default main branch tags
-          MAIN_NGINX_TAG="otel"
+          MAIN_NGINX_TAG="openresty"
           MAIN_PHP_TAG="8.4-fpm"
           MAIN_WP_TAG="php8.4-fpm"
           
@@ -211,9 +211,9 @@ jobs:
           volumes:
             wp_data:
             php_data:
-            
+
           services:
-            nginx:
+            openresty:
               image: ghcr.io/${{ github.repository }}/nginx:${{ steps.tags.outputs.nginx }}
               ports:
                 - "8080:80"
@@ -222,12 +222,15 @@ jobs:
                 - wp_data:/var/www/wordpress:ro
                 - php_data:/var/www/php:ro
               depends_on:
-                php:
+                php-fpm:
                   condition: service_healthy
                 wordpress:
                   condition: service_healthy
-            php:
+            php-fpm:
               image: ghcr.io/${{ github.repository }}/php:${{ steps.tags.outputs.php }}
+              environment:
+                - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+                - OTEL_SERVICE_NAME=php-fpm
               volumes:
                 - php_data:/var/www/php:rw
               healthcheck:
@@ -238,13 +241,15 @@ jobs:
             wordpress:
               user: root
               image: ghcr.io/${{ github.repository }}/wordpress:${{ steps.tags.outputs.wordpress }}
-              volumes:
-                - wp_data:/var/www/wordpress:rw
               environment:
                 - WORDPRESS_DB_HOST=db
                 - WORDPRESS_DB_USER=wordpress
                 - WORDPRESS_DB_PASSWORD=wordpress
                 - WORDPRESS_DB_NAME=wordpress
+                - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+                - OTEL_SERVICE_NAME=wordpress
+              volumes:
+                - wp_data:/var/www/wordpress:rw
               depends_on:
                 db:
                   condition: service_healthy
@@ -265,6 +270,14 @@ jobs:
                 interval: 5s
                 timeout: 5s
                 retries: 5
+            jaeger:
+              image: jaegertracing/all-in-one:latest
+              ports:
+                - "16686:16686"
+                - "4317:4317"
+                - "4318:4318"
+              environment:
+                - COLLECTOR_OTLP_ENABLED=true
           EOF
 
           cat << 'EOF' > .test-env/nginx.conf
@@ -275,7 +288,7 @@ jobs:
 
               location /info.php {
                   root /var/www/php;
-                  fastcgi_pass php:9000;
+                  fastcgi_pass php-fpm:9000;
                   fastcgi_index index.php;
                   fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
                   include fastcgi_params;
@@ -284,7 +297,7 @@ jobs:
               location / {
                   root /var/www/wordpress;
                   try_files $uri $uri/ /index.php?$args;
-                  
+
                   location ~ \.php$ {
                       fastcgi_pass wordpress:9000;
                       fastcgi_index index.php;
@@ -300,25 +313,25 @@ jobs:
         run: |
           docker compose up -d --wait
           docker compose ps
-          # Inject info.php into shared volume so nginx can access it
-          docker compose exec -u root -T php sh -c "mkdir -p /var/www/php && echo '<?php phpinfo(); ?>' > /var/www/php/info.php"
-          docker compose exec -u root -T php chown www-data:www-data /var/www/php/info.php
+          # Inject info.php into shared volume so openresty can access it
+          docker compose exec -u root -T php-fpm sh -c "mkdir -p /var/www/php && echo '<?php phpinfo(); ?>' > /var/www/php/info.php"
+          docker compose exec -u root -T php-fpm chown www-data:www-data /var/www/php/info.php
           # Verify the file exists in the shared volume
           echo "Checking if info.php exists in PHP container:"
-          docker compose exec -T php ls -la /var/www/php/info.php
-          echo "Checking if nginx can access the file:"
-          docker compose exec -T nginx ls -la /var/www/php/info.php || echo "File not accessible from nginx"
+          docker compose exec -T php-fpm ls -la /var/www/php/info.php
+          echo "Checking if openresty can access the file:"
+          docker compose exec -T openresty ls -la /var/www/php/info.php || echo "File not accessible from openresty"
 
       - name: Test PHP FPM endpoints
         working-directory: .test-env
         run: |
-          echo "Testing nginx configuration:"
-          docker compose exec -T nginx nginx -t
+          echo "Testing openresty configuration:"
+          docker compose exec -T openresty openresty -t
           echo "Testing HTTP request:"
           curl -sI http://localhost:8080/info.php
           curl -s http://localhost:8080/info.php | grep -i "php version"
           curl -s http://localhost:8080/info.php
-          docker compose exec -T php php -m
+          docker compose exec -T php-fpm php -m
 
       - name: Test WordPress installation
         working-directory: .test-env
@@ -330,6 +343,21 @@ jobs:
           docker compose exec -T wordpress wp plugin list --allow-root
           # Verify Nginx routes to WordPress index
           curl -s http://localhost:8080/ | grep -i "Test Site"
+
+      - name: Test Jaeger Traces
+        working-directory: .test-env
+        run: |
+          echo "Waiting for OTel traces to flush..."
+          sleep 5
+          echo "Checking php-fpm traces in Jaeger:"
+          PHP_TRACE_COUNT=$(curl -s "http://localhost:16686/api/traces?service=php-fpm&limit=5" | jq '.data | length')
+          echo "php-fpm traces received: $PHP_TRACE_COUNT"
+          if [ "$PHP_TRACE_COUNT" -eq 0 ]; then echo "ERROR: No php-fpm traces in Jaeger!"; exit 1; fi
+          echo "Checking wordpress traces in Jaeger:"
+          WP_TRACE_COUNT=$(curl -s "http://localhost:16686/api/traces?service=wordpress&limit=5" | jq '.data | length')
+          echo "wordpress traces received: $WP_TRACE_COUNT"
+          if [ "$WP_TRACE_COUNT" -eq 0 ]; then echo "ERROR: No wordpress traces in Jaeger!"; exit 1; fi
+          echo "All trace assertions passed"
 
       - name: Teardown Test Environment
         if: always()
