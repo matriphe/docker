@@ -1,4 +1,23 @@
 receivers:
+  # PHP-FPM OTLP receiver
+  otlp/php:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:${env:OTEL_RECEIVER_PORT_PHP:-4317}
+
+  # WordPress OTLP receiver
+  otlp/wordpress:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:${env:OTEL_RECEIVER_PORT_WORDPRESS:-4318}
+
+  # OpenResty OTLP receiver (for future enhancement)
+  otlp/openresty:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:${env:OTEL_RECEIVER_PORT_OPENRESTY:-4319}
+
+  # Keep existing log receivers
   filelog:
     include:
       - /var/log/nginx/access.log
@@ -9,18 +28,6 @@ receivers:
         timestamp:
           parse_from: attributes.time_local
           layout: "%d/%b/%Y:%H:%M:%S %z"
-      - type: trace_parser
-        trace_id:
-          parse_from: attributes.trace_id
-        span_id:
-          parse_from: attributes.span_id
-  filelog/error:
-    include:
-      - /var/log/nginx/error.log
-    attributes:
-      service.name: "nginx-${env:ENVIRONMENT:-local}"
-      log.type: error
-
 
 processors:
   batch:
@@ -35,24 +42,36 @@ exporters:
     verbosity: detailed
     sampling_initial: 5
     sampling_thereafter: 200
-  
-  # Sentry exporter (requires SENTRY_OTLP_ENDPOINT and SENTRY_DSN_KEY environment variables)
-  otlphttp/sentry:
-    logs_endpoint: "${env:SENTRY_OTLP_ENDPOINT}"
+
+  # Sentry exporter for PHP-FPM
+  otlphttp/sentry-php:
+    endpoint: "${env:SENTRY_OTLP_ENDPOINT}"
     headers:
-      x-sentry-auth: "sentry sentry_key=${env:SENTRY_DSN_KEY}"
+      x-sentry-auth: "sentry sentry_key=${env:SENTRY_DSN_KEY_PHP}"
+    compression: gzip
+    encoding: proto
+
+  # Sentry exporter for WordPress
+  otlphttp/sentry-wordpress:
+    endpoint: "${env:SENTRY_OTLP_ENDPOINT}"
+    headers:
+      x-sentry-auth: "sentry sentry_key=${env:SENTRY_DSN_KEY_WORDPRESS}"
     compression: gzip
     encoding: proto
 
 service:
   pipelines:
+    # PHP-FPM pipeline
+    traces/php:
+      receivers: [otlp/php]
+      exporters: [otlphttp/sentry-php]
+
+    # WordPress pipeline
+    traces/wordpress:
+      receivers: [otlp/wordpress]
+      exporters: [otlphttp/sentry-wordpress]
+
+    # Logs pipeline (shared)
     logs:
-      receivers:
-        - filelog
-        - filelog/error
-      processors:
-        - batch
-      exporters:
-        - debug
-        # Uncomment the line below when SENTRY_OTLP_ENDPOINT and SENTRY_DSN_KEY are configured
-        # - otlphttp/sentry
+      receivers: [filelog]
+      exporters: [debug]

@@ -42,17 +42,16 @@ WORKDIR ${WORKDIR}
 
 RUN set -eux; \
     apk add --no-cache ${RUNTIME_DEPS}; \
-    apk add --no-cache --virtual .build-deps \
-        $PHPIZE_DEPS \
-        ${BUILD_DEPS}; \
-    # gd requires pre-configuration for FreeType, JPEG, and WebP support.
-    # opcache is explicitly installed here to ensure it's correctly compiled 
-    # and enabled with the specified optimizations.
-    docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp; \
-    docker-php-ext-install -j"${JOB_NUM:-$(nproc)}" gd opcache ${PHP_EXTENSIONS}; \
-    pecl install ${PECL_EXTENSIONS}; \
-    docker-php-ext-enable ${PECL_EXTENSIONS}; \
-    apk del .build-deps; \
+    apk add --no-cache autoconf automake libtool make g++ gcc musl-dev; \
+    curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions; \
+    chmod +x /usr/local/bin/install-php-extensions; \
+    install-php-extensions gd opcache ${PHP_EXTENSIONS} ${PECL_EXTENSIONS}; \
+    # Install OpenTelemetry extension explicitly
+    pecl install opentelemetry; \
+    docker-php-ext-enable opentelemetry; \
+    # Remove build dependencies and clean up
+    apk del --no-cache autoconf automake libtool make g++ gcc musl-dev; \
+    rm /usr/local/bin/install-php-extensions; \
     rm -rf /tmp/* /var/tmp/*
 
 # We use UID 82 (the Alpine default for www-data) to ensure consistent 
@@ -64,8 +63,9 @@ RUN set -eux; \
     chown -R "${USER}:${USER}" "${WORKDIR}"; \
     chmod -R 755 "${WORKDIR}"
 
-COPY config/php/php.ini /usr/local/etc/php/php.ini
-COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY config/php.ini /usr/local/etc/php/php.ini
+COPY config/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY php/fpm/config/php-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
 
 RUN set -eux; \
     sed -i "s/www-data/${USER}/g" /usr/local/etc/php-fpm.d/www.conf

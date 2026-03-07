@@ -43,23 +43,9 @@ if [ "$1" = "nginx" ] || [ "$1" = "nginx-debug" ]; then
         entrypoint_log "$0: No files found in /docker-entrypoint.d/, skipping configuration"
     fi
 
-    # ==========================================================
-    # Additional: Process Nginx configuration template
-    # ==========================================================
-    export OTEL_COLLECTOR_ENDPOINT=${OTEL_COLLECTOR_ENDPOINT:-localhost:4317}
+    # Process Nginx configuration template
     entrypoint_log "$0: Generating /etc/nginx/nginx.conf from template..."
-    envsubst '${OTEL_COLLECTOR_ENDPOINT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
-
-    # ==========================================================
-    # Additional: Run OpenTelemetry Collector
-    # ==========================================================
-    if [ -f "/usr/bin/otelcol-contrib" ]; then
-        entrypoint_log "$0: Starting OpenTelemetry Collector..."
-        /usr/bin/otelcol-contrib --config=/etc/opentelemetry-collector/config.yaml > /dev/stdout 2>&1 &
-    else
-        entrypoint_log "$0: OpenTelemetry Collector binary not found, skipping."
-    fi
-    # ==========================================================
+    envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 fi
 
 # Run original NGINX command (usually: exec nginx -g 'daemon off;')
