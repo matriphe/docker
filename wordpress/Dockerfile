@@ -18,21 +18,19 @@ COPY --chown=www-data:www-data config/www.conf /usr/local/etc/php-fpm.d/www.conf
 COPY --chown=www-data:www-data config/php.ini /usr/local/etc/php/php.ini
 COPY --chown=www-data:www-data wordpress/config/wp-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
 
+# Layer 1: Setup WordPress directory structure
 RUN set -eux; \
     mkdir -p "${WORDPRESS_ROOT}"; \
     cp -r /var/www/html/* "${WORDPRESS_ROOT}"; \
     rm -rf /var/www/html; \
-    sed -i "s|/var/www/html|${WORDPRESS_ROOT}|g" /usr/local/etc/php-fpm.d/www.conf; \
+    sed -i "s|/var/www/html|${WORDPRESS_ROOT}|g" /usr/local/etc/php-fpm.d/www.conf
+
+# Layer 2: Install utility and OpenTelemetry extensions
+RUN set -eux; \
     apk add --no-cache jq nano curl; \
-    apk add --no-cache autoconf automake libtool make g++ gcc musl-dev; \
     curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions; \
     chmod +x /usr/local/bin/install-php-extensions; \
     install-php-extensions opentelemetry; \
-    # Install OpenTelemetry extension explicitly (in case install-php-extensions skipped it)
-    pecl install opentelemetry; \
-    docker-php-ext-enable opentelemetry; \
-    # Remove build dependencies and clean up
-    apk del --no-cache autoconf automake libtool make g++ gcc musl-dev; \
     rm /usr/local/bin/install-php-extensions; \
     rm -rf /tmp/* /var/tmp/*
 

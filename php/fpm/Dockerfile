@@ -13,10 +13,8 @@ LABEL maintainer="Muhammad Zamroni <halo@matriphe.com>"
 ARG RUNTIME_DEPS="git pkgconf fcgi zip unzip curl \
     libzip libpng libwebp libxpm libjpeg-turbo freetype libxml2 icu-libs oniguruma libcurl"
 
-ARG BUILD_DEPS="zlib-dev libzip-dev libpng-dev libwebp-dev libxpm-dev libjpeg-turbo-dev freetype-dev libxml2-dev icu-dev oniguruma-dev curl-dev"
-
-ARG PHP_EXTENSIONS="pdo pdo_mysql xml mbstring exif bcmath intl zip curl"
-ARG PECL_EXTENSIONS="apcu excimer"
+ARG PHP_EXTENSIONS="pdo pdo_mysql xml mbstring exif bcmath intl zip curl gd opcache"
+ARG PECL_EXTENSIONS="apcu excimer opentelemetry"
 # Build concurrency argument to speed up extension compilation 
 # on multi-core systems (e.g., -j$(nproc))
 ARG JOB_NUM=""
@@ -40,23 +38,19 @@ COPY --from=composer /usr/bin/composer /usr/bin/composer
 
 WORKDIR ${WORKDIR}
 
+# Layer 1: Install runtime dependencies
+RUN apk add --no-cache ${RUNTIME_DEPS}
+
+# Layer 2: Download and configure extension installer, install all extensions
 RUN set -eux; \
-    apk add --no-cache ${RUNTIME_DEPS}; \
-    apk add --no-cache autoconf automake libtool make g++ gcc musl-dev; \
     curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions; \
     chmod +x /usr/local/bin/install-php-extensions; \
-    install-php-extensions gd opcache ${PHP_EXTENSIONS} ${PECL_EXTENSIONS}; \
-    # Install OpenTelemetry extension explicitly
-    pecl install opentelemetry; \
-    docker-php-ext-enable opentelemetry; \
-    # Remove build dependencies and clean up
-    apk del --no-cache autoconf automake libtool make g++ gcc musl-dev; \
+    install-php-extensions ${PHP_EXTENSIONS} ${PECL_EXTENSIONS}; \
     rm /usr/local/bin/install-php-extensions; \
     rm -rf /tmp/* /var/tmp/*
 
-# We use UID 82 (the Alpine default for www-data) to ensure consistent 
-# file permissions when sharing volumes with the Nginx container, 
-# which is also based on Alpine.
+# Layer 3: Create application user (UID 82 is Alpine default for www-data)
+# This ensures consistent file permissions when sharing volumes with other Alpine containers
 RUN set -eux; \
     (addgroup -g 82 -S "${USER}" 2>/dev/null || true); \
     (adduser -u 82 -D -S -G "${USER}" "${USER}" 2>/dev/null || true); \
