@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /tmp/docker-test)",
+      "Read(//tmp/**)",
+      "Read(//private/tmp/docker-test/**)",
+      "Bash(docker compose up -d --wait)",
+      "Bash(git merge:*)",
+      "Bash(git commit:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
