@@ -358,6 +358,21 @@ jobs:
       - name: Test Jaeger Traces
         working-directory: .test-env
         run: |
+          echo "=== Diagnostic: Container Status ==="
+          docker compose ps
+          echo ""
+          echo "=== Diagnostic: PHP-FPM OTel Config ==="
+          docker compose exec -T php-fpm cat /usr/local/etc/php/conf.d/opentelemetry.ini || echo "Config file not found"
+          echo ""
+          echo "=== Diagnostic: PHP-FPM Environment ==="
+          docker compose exec -T php-fpm env | grep OTEL || echo "No OTEL vars"
+          echo ""
+          echo "=== Diagnostic: PHP Extensions ==="
+          docker compose exec -T php-fpm php -m | grep -i otel || echo "OTel not in php -m"
+          echo ""
+          echo "=== Diagnostic: Jaeger Health ==="
+          curl -s http://localhost:16686/api/services || echo "Jaeger not responding"
+          echo ""
           echo "Waiting for OTel traces to flush..."
           sleep 15
           echo "Checking php-fpm traces in Jaeger:"

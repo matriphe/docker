@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh run list --branch replace-nginx-to-openresty --limit 2 --json number,status,conclusion,event)",
+      "Bash(gh pr view 5 --json statusCheckRollup)",
+      "Bash(gh run view 22794017437 --log-failed)"
+    ]
+  }
+}
