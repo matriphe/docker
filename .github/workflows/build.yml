@@ -98,23 +98,31 @@ jobs:
         run: |
           EVENT="${{ github.event_name }}"
           if [ "$EVENT" = "schedule" ]; then
-            echo "nginx=true"     >> "$GITHUB_OUTPUT"
-            echo "php=true"       >> "$GITHUB_OUTPUT"
-            echo "wordpress=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "nginx=true"
+              echo "php=true"
+              echo "wordpress=true"
+            } >> "$GITHUB_OUTPUT"
           elif [ "$EVENT" = "workflow_dispatch" ]; then
             if [ "${{ github.event.inputs.rebuild_all }}" = "true" ]; then
-              echo "nginx=true"     >> "$GITHUB_OUTPUT"
-              echo "php=true"       >> "$GITHUB_OUTPUT"
-              echo "wordpress=true" >> "$GITHUB_OUTPUT"
+              {
+                echo "nginx=true"
+                echo "php=true"
+                echo "wordpress=true"
+              } >> "$GITHUB_OUTPUT"
             else
-              echo "nginx=${{ github.event.inputs.rebuild_nginx }}"         >> "$GITHUB_OUTPUT"
-              echo "php=${{ github.event.inputs.rebuild_php }}"             >> "$GITHUB_OUTPUT"
-              echo "wordpress=${{ github.event.inputs.rebuild_wordpress }}" >> "$GITHUB_OUTPUT"
+              {
+                echo "nginx=${{ github.event.inputs.rebuild_nginx }}"
+                echo "php=${{ github.event.inputs.rebuild_php }}"
+                echo "wordpress=${{ github.event.inputs.rebuild_wordpress }}"
+              } >> "$GITHUB_OUTPUT"
             fi
           else
-            echo "nginx=${{ steps.filter.outputs.nginx }}"         >> "$GITHUB_OUTPUT"
-            echo "php=${{ steps.filter.outputs.php }}"             >> "$GITHUB_OUTPUT"
-            echo "wordpress=${{ steps.filter.outputs.wordpress }}" >> "$GITHUB_OUTPUT"
+            {
+              echo "nginx=${{ steps.filter.outputs.nginx }}"
+              echo "php=${{ steps.filter.outputs.php }}"
+              echo "wordpress=${{ steps.filter.outputs.wordpress }}"
+            } >> "$GITHUB_OUTPUT"
           fi
 
   nginx:

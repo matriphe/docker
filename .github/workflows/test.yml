@@ -81,9 +81,11 @@ jobs:
           echo "php=$PHP_TAG"
           echo "wordpress=$WP_TAG"
 
-          echo "nginx=$NGINX_TAG" >> "$GITHUB_OUTPUT"
-          echo "php=$PHP_TAG" >> "$GITHUB_OUTPUT"
-          echo "wordpress=$WP_TAG" >> "$GITHUB_OUTPUT"
+          {
+            echo "nginx=$NGINX_TAG"
+            echo "php=$PHP_TAG"
+            echo "wordpress=$WP_TAG"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Setup Test Environment
         run: |
