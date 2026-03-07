@@ -80,15 +80,19 @@ jobs:
         with:
           context: ${{ inputs.context }}
           file: ${{ inputs.file }}
-          build-args: ${{ inputs.build_args }}
+          build-args: |
+            ${{ inputs.build_args }}
+            BUILDKIT_INLINE_CACHE=1
           push: ${{ inputs.push_image }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: ${{ inputs.platforms }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: >-
-            ${{ env.REGISTRY }}/${{ inputs.image_name != '' &&
-            inputs.image_name || github.repository }}:${{ inputs.image_tag }}
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ inputs.image_name != '' && inputs.image_name || github.repository }}:cache
+            type=gha
+          cache-to: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ inputs.image_name != '' && inputs.image_name || github.repository }}:cache,mode=max
+            type=gha,mode=max
+          tags: ${{ env.REGISTRY }}/${{ inputs.image_name != '' && inputs.image_name || github.repository }}:${{ inputs.image_tag }}
 
       - name: Sign the published Docker image
         if: ${{ inputs.sign_image }}
