@@ -235,7 +235,7 @@ jobs:
             php-fpm:
               image: ghcr.io/${{ github.repository }}/php:${{ steps.tags.outputs.php }}
               environment:
-                - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+                - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
                 - OTEL_SERVICE_NAME=php-fpm
               volumes:
                 - php_data:/var/www/php:rw
@@ -354,7 +354,7 @@ jobs:
         working-directory: .test-env
         run: |
           echo "Waiting for OTel traces to flush..."
-          sleep 5
+          sleep 15
           echo "Checking php-fpm traces in Jaeger:"
           PHP_TRACE_COUNT=$(curl -s "http://localhost:16686/api/traces?service=php-fpm&limit=5" | jq '.data | length')
           echo "php-fpm traces received: $PHP_TRACE_COUNT"
