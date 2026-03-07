@@ -22,7 +22,28 @@ on:
       - 'config/php/**' # Trigger on shared PHP config changes
       - 'php/fpm/**' # Trigger on PHP-FPM build context changes
       - 'wordpress/**' # Trigger on WordPress build context changes
-  workflow_dispatch: # Allows manual triggering from the GitHub UI
+  workflow_dispatch:
+    inputs:
+      rebuild_nginx:
+        description: 'Rebuild nginx image'
+        required: false
+        default: 'false'
+        type: boolean
+      rebuild_php:
+        description: 'Rebuild PHP-FPM image'
+        required: false
+        default: 'false'
+        type: boolean
+      rebuild_wordpress:
+        description: 'Rebuild WordPress image'
+        required: false
+        default: 'false'
+        type: boolean
+      run_tests_only:
+        description: 'Run tests only (skip builds)'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
   checks:
@@ -56,7 +77,7 @@ jobs:
         run: echo "php_version=8.4" >> "$GITHUB_OUTPUT"
 
   nginx:
-    if: ${{ always() && (github.event_name != 'pull_request' || needs.checks.result == 'success') }}
+    if: ${{ always() && (github.event_name != 'pull_request' || needs.checks.result == 'success') && (github.event.inputs.rebuild_nginx != 'true' || github.event_name != 'workflow_dispatch') }}
     needs: [checks]
     permissions:
       contents: read
@@ -73,7 +94,7 @@ jobs:
     secrets: inherit
 
   php-fpm:
-    if: ${{ always() && needs.php_version.result == 'success' && (github.event_name != 'pull_request' || needs.checks.result == 'success') }}
+    if: ${{ always() && needs.php_version.result == 'success' && (github.event_name != 'pull_request' || needs.checks.result == 'success') && (github.event.inputs.rebuild_php != 'true' || github.event_name != 'workflow_dispatch') }}
     needs: [checks, php_version]
     permissions:
       contents: read
@@ -92,7 +113,7 @@ jobs:
     secrets: inherit
 
   wordpress:
-    if: ${{ always() && needs.php_version.result == 'success' && (github.event_name != 'pull_request' || needs.checks.result == 'success') }}
+    if: ${{ always() && needs.php_version.result == 'success' && (github.event_name != 'pull_request' || needs.checks.result == 'success') && (github.event.inputs.rebuild_wordpress != 'true' || github.event_name != 'workflow_dispatch') }}
     needs: [checks, php_version]
     permissions:
       contents: read
@@ -111,7 +132,7 @@ jobs:
     secrets: inherit
 
   test:
-    if: ${{ always() && needs.php_version.result == 'success' && (github.event_name != 'pull_request' || needs.checks.result == 'success') }}
+    if: ${{ always() && needs.php_version.result == 'success' && needs.checks.result == 'success' && needs.nginx.result == 'success' && needs.php-fpm.result == 'success' && needs.wordpress.result == 'success' && (github.event.inputs.run_tests_only != 'true' || github.event_name != 'workflow_dispatch') }}
     needs: [checks, php_version, nginx, php-fpm, wordpress]
     runs-on: ubuntu-latest
     permissions:
