@@ -1,12 +1,13 @@
+---
 name: Cleanup GHCR Images
 
 on:
   schedule:
-    - cron: '0 4 * * 0' # Sunday at 04:00 UTC
+    - cron: "0 4 * * 0" # Sunday at 04:00 UTC
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Preview deletions without deleting package versions'
+        description: "Preview deletions without deleting package versions"
         required: true
         type: boolean
         default: true
@@ -38,7 +39,8 @@ jobs:
         env:
           PACKAGE_NAME: ${{ matrix.package_name }}
           KEEP_TAG: ${{ matrix.keep_tag }}
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' &&
+            inputs.dry_run || 'false' }}
         with:
           script: |
             const owner = context.repo.owner;

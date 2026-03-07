@@ -11,12 +11,15 @@ ARG USER=www-data
 ENV WORDPRESS_ROOT=${WORKDIR} \
     USER=${USER}
 
+# Copy binary dependencies from other stages
 COPY --from=wp_cli /usr/local/bin/wp /usr/local/bin/wp
 COPY --from=composer_bin /usr/bin/composer /usr/bin/composer
 
+# Copy config files before the RUN step to prevent them from invalidating the WordPress base layer cache
 COPY --chown=www-data:www-data config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 COPY --chown=www-data:www-data config/php/php.ini /usr/local/etc/php/php.ini
 
+# Configure WordPress directory and install additional tools
 RUN set -eux; \
     mkdir -p "${WORDPRESS_ROOT}"; \
     cp -r /var/www/html/* "${WORDPRESS_ROOT}"; \

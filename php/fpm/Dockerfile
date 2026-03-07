@@ -40,13 +40,27 @@ COPY --from=composer /usr/bin/composer /usr/bin/composer
 
 WORKDIR ${WORKDIR}
 
-RUN set -eux; \
-    apk add --no-cache ${RUNTIME_DEPS}; \
+# Copy config files BEFORE expensive compilation
+# This prevents configuration changes from invalidating the extension compilation cache
+COPY config/php/php.ini /usr/local/etc/php/php.ini
+COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+
+# Install runtime dependencies only
+RUN --mount=type=cache,target=/var/cache/apk \
+    set -eux; \
+    apk add --no-cache ${RUNTIME_DEPS}
+
+# Install build dependencies and compile PHP extensions
+# Cache mount preserves /var/cache/apk between builds for faster apk operations
+# Note: /tmp is not cached as the step ends with rm -rf /tmp/* which would empty
+# the cache, and GCC temp files from QEMU arm64 builds conflict with parallel amd64 builds
+RUN --mount=type=cache,target=/var/cache/apk \
+    set -eux; \
     apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
         ${BUILD_DEPS}; \
     # gd requires pre-configuration for FreeType, JPEG, and WebP support.
-    # opcache is explicitly installed here to ensure it's correctly compiled 
+    # opcache is explicitly installed here to ensure it's correctly compiled
     # and enabled with the specified optimizations.
     docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp; \
     docker-php-ext-install -j"${JOB_NUM:-$(nproc)}" gd opcache ${PHP_EXTENSIONS}; \
@@ -55,18 +69,17 @@ RUN set -eux; \
     apk del .build-deps; \
     rm -rf /tmp/* /var/tmp/*
 
-# We use UID 82 (the Alpine default for www-data) to ensure consistent 
-# file permissions when sharing volumes with the Nginx container, 
+# We use UID 82 (the Alpine default for www-data) to ensure consistent
+# file permissions when sharing volumes with the Nginx container,
 # which is also based on Alpine.
+# Separate from compilation step to allow this to be cached independently
 RUN set -eux; \
     (addgroup -g 82 -S "${USER}" 2>/dev/null || true); \
     (adduser -u 82 -D -S -G "${USER}" "${USER}" 2>/dev/null || true); \
     chown -R "${USER}:${USER}" "${WORKDIR}"; \
     chmod -R 755 "${WORKDIR}"
 
-COPY config/php/php.ini /usr/local/etc/php/php.ini
-COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
-
+# Configure www.conf with user substitution
 RUN set -eux; \
     sed -i "s/www-data/${USER}/g" /usr/local/etc/php-fpm.d/www.conf
 
