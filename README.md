@@ -247,11 +247,11 @@ The OpenResty image includes a built-in OpenTelemetry Collector sidecar that aut
 
 To send Nginx logs to Sentry using OTLP, configure these environment variables for the `openresty` service:
 
-| Environment Variable | Description | Example |
-|----------------------|-------------|---------|
+| Environment Variable   | Description                               | Example                           |
+| ---------------------- | ----------------------------------------- | --------------------------------- |
 | `SENTRY_OTLP_ENDPOINT` | The Sentry OTLP base URL (no path needed) | `https://oXXXXX.ingest.sentry.io` |
-| `SENTRY_DSN_KEY` | The key part of your Sentry DSN | `abc123def456...` |
-| `ENVIRONMENT` | Deployment environment name | `production`, `staging` |
+| `SENTRY_DSN_KEY`       | The key part of your Sentry DSN           | `abc123def456...`                 |
+| `ENVIRONMENT`          | Deployment environment name               | `production`, `staging`           |
 
 **Example `docker-compose.yml` configuration:**
 
