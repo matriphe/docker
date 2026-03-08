@@ -11,7 +11,7 @@ entrypoint_log() {
     fi
 }
 
-if [ "$1" = "nginx" ] || [ "$1" = "nginx-debug" ]; then
+if [ "$1" = "nginx" ] || [ "$1" = "nginx-debug" ] || [ "$1" = "openresty" ]; then
     if /usr/bin/find "/docker-entrypoint.d/" -mindepth 1 -maxdepth 1 -type f -print -quit 2>/dev/null | read v; then
         entrypoint_log "$0: /docker-entrypoint.d/ is not empty, will attempt to perform configuration"
 
@@ -44,8 +44,8 @@ if [ "$1" = "nginx" ] || [ "$1" = "nginx-debug" ]; then
     fi
 
     # Process Nginx configuration template
-    entrypoint_log "$0: Generating /etc/nginx/nginx.conf from template..."
-    envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+    entrypoint_log "$0: Generating nginx.conf from template..."
+    envsubst < /usr/local/openresty/nginx/conf/nginx.conf.template > /usr/local/openresty/nginx/conf/nginx.conf
 fi
 
 # Run original NGINX command (usually: exec nginx -g 'daemon off;')

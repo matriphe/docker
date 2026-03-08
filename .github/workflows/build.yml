@@ -7,48 +7,48 @@ name: Build
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
-      - '**/Dockerfile'
-      - '.github/workflows/**'
-      - 'nginx/**'
-      - 'config/**'
-      - 'php/**'
-      - 'wordpress/**'
+      - "**/Dockerfile"
+      - ".github/workflows/**"
+      - "nginx/**"
+      - "config/**"
+      - "php/**"
+      - "wordpress/**"
   schedule:
-    - cron: '0 4 * * 5' # at 04:00 UTC on Friday (05:00/06:00 Europe/Berlin depending DST; 0 is Sunday, 5 is Friday)
+    - cron: "0 4 * * 5" # at 04:00 UTC on Friday (05:00/06:00 Europe/Berlin depending DST; 0 is Sunday, 5 is Friday)
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
+    tags: ["v*.*.*"]
     paths:
-      - '**/Dockerfile' # Trigger on changes to any Dockerfile
-      - '.github/workflows/**' # Trigger on workflow changes
-      - 'nginx/**' # Trigger on nginx build context changes
-      - 'config/**' # Trigger on shared config changes
-      - 'php/**' # Trigger on PHP build context changes
-      - 'wordpress/**' # Trigger on WordPress build context changes
+      - "**/Dockerfile" # Trigger on changes to any Dockerfile
+      - ".github/workflows/**" # Trigger on workflow changes
+      - "nginx/**" # Trigger on nginx build context changes
+      - "config/**" # Trigger on shared config changes
+      - "php/**" # Trigger on PHP build context changes
+      - "wordpress/**" # Trigger on WordPress build context changes
   workflow_dispatch:
     inputs:
       rebuild_nginx:
-        description: 'Rebuild nginx image'
+        description: "Rebuild nginx image"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
       rebuild_php:
-        description: 'Rebuild PHP-FPM image'
+        description: "Rebuild PHP-FPM image"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
       rebuild_wordpress:
-        description: 'Rebuild WordPress image'
+        description: "Rebuild WordPress image"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
       run_tests_only:
-        description: 'Run tests only (skip builds)'
+        description: "Run tests only (skip builds)"
         required: false
-        default: 'false'
+        default: "false"
         type: boolean
 
 jobs:
@@ -162,12 +162,12 @@ jobs:
           MAIN_NGINX_TAG="openresty"
           MAIN_PHP_TAG="8.4-fpm"
           MAIN_WP_TAG="php8.4-fpm"
-          
+
           # Initialize with main branch tags
           NGINX_TAG=$MAIN_NGINX_TAG
           PHP_TAG=$MAIN_PHP_TAG
           WP_TAG=$MAIN_WP_TAG
-          
+
           # Check if this is a PR
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             PR_NUMBER="${{ github.event.pull_request.number }}"
@@ -200,15 +200,17 @@ jobs:
           else
             echo "Using main branch tags"
           fi
-          
+
           echo "Final tags:"
           echo "nginx=$NGINX_TAG"
           echo "php=$PHP_TAG"
           echo "wordpress=$WP_TAG"
-          
-          echo "nginx=$NGINX_TAG" >> "$GITHUB_OUTPUT"
-          echo "php=$PHP_TAG" >> "$GITHUB_OUTPUT"
-          echo "wordpress=$WP_TAG" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "nginx=$NGINX_TAG"
+            echo "php=$PHP_TAG"
+            echo "wordpress=$WP_TAG"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Setup Test Environment
         run: |
