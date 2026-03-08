@@ -183,16 +183,56 @@ services:
       - MYSQL_PASSWORD=wordpress
 
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/jaeger:latest
     ports:
       - "16686:16686"
       - "4317:4317"
       - "4318:4318"
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
+    volumes:
+      - ./jaeger.yaml:/etc/jaeger/jaeger.yaml:ro
+    command: ["--config", "/etc/jaeger/jaeger.yaml"]
 ```
 
-2. Start services and view Jaeger UI:
+2. Create a Jaeger v2 config file (`jaeger.yaml`):
+
+Jaeger v2 requires a YAML configuration file. Use this minimal in-memory config for development:
+
+```yaml
+service:
+  extensions: [jaeger_storage, jaeger_query]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [jaeger_storage_exporter]
+
+extensions:
+  jaeger_storage:
+    backends:
+      memstore:
+        memory:
+          max_traces: 10000
+  jaeger_query:
+    storage:
+      traces: memstore
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: memstore
+```
+
+3. Start services and view Jaeger UI:
 
 ```bash
 docker compose up -d
