@@ -30,12 +30,12 @@ exporters:
   otlphttp/otlp:
     endpoint: "${env:OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}"
     compression: gzip
-  otlphttp/sentry:
+  otlp/sentry:
     endpoint: "${env:SENTRY_OTLP_ENDPOINT}"
+    tls:
+      insecure: true
     headers:
       x-sentry-auth: "sentry sentry_key=${env:SENTRY_DSN_KEY:-disabled}"
-    compression: gzip
-    encoding: proto
 
 service:
   pipelines:
@@ -48,4 +48,4 @@ service:
       exporters:
         - debug
         - otlphttp/otlp
-        - otlphttp/sentry
+        - otlp/sentry
