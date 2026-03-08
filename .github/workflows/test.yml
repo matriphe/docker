@@ -440,11 +440,16 @@ jobs:
           echo "=== Test 5: Sentry mock received OTLP log exports ==="
           echo "--- Waiting additional 5s for Sentry batch flush ---"
           sleep 5
+          # Inspect all received requests to debug the path
+          echo "--- WireMock Received Requests ---"
+          curl -sf http://localhost:9099/__admin/requests | jq '.requests[] | {method, url, body}' || echo "No requests found"
+
           SENTRY_COUNT=$(curl -sf -X POST http://localhost:9099/__admin/requests/count \
             -H "Content-Type: application/json" \
             -d '{"method":"POST","urlPathPattern":"/.*"}' \
             | grep -o '"count":[0-9]*' | grep -o '[0-9]*' || echo "0")
           echo "WireMock received $SENTRY_COUNT POST requests"
+
           if [ -z "$SENTRY_COUNT" ] || [ "$SENTRY_COUNT" -eq 0 ]; then
             echo "FAIL: OTel collector did not send any logs to Sentry mock"
             echo "--- otelcol.log content ---"
