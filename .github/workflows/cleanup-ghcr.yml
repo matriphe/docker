@@ -28,13 +28,11 @@ jobs:
       matrix:
         include:
           - package_name: docker/php
-            keep_tag: 8.4-fpm
+            keep_tag: "8.4-fpm,cache"
           - package_name: docker/wordpress
-            keep_tag: php8.4-fpm
+            keep_tag: "php8.4-fpm,cache"
           - package_name: docker/nginx
-            keep_tag: otel
-          - package_name: docker/nginx
-            keep_tag: openresty
+            keep_tag: "otel,openresty,cache"
     steps:
       - name: Delete old package versions
         uses: actions/github-script@v8
@@ -47,7 +45,7 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const packageName = process.env.PACKAGE_NAME;
-            const keepTag = process.env.KEEP_TAG;
+            const keepTags = process.env.KEEP_TAG.split(',').map(t => t.trim());
             const dryRun = String(process.env.DRY_RUN).toLowerCase() === "true";
             const packageType = "container";
             const ownerType = context.payload.repository.owner.type;
@@ -114,7 +112,7 @@ jobs:
             }
 
             core.info(`Package: ${packageName}`);
-            core.info(`Protected tag: ${keepTag}`);
+            core.info(`Protected tags: ${keepTags.join(', ')}`);
             core.info(`Owner type: ${ownerType}`);
             core.info(`Dry run: ${dryRun}`);
             core.info(`Total versions found: ${versions.length}`);
@@ -126,7 +124,8 @@ jobs:
             for (const version of versions) {
               const tags = getTags(version);
               const tagList = tags.length > 0 ? tags.join(", ") : "(untagged)";
-              const protectedVersion = tags.includes(keepTag);
+              
+              const protectedVersion = tags.some(tag => keepTags.includes(tag));
 
               if (protectedVersion) {
                 kept += 1;
