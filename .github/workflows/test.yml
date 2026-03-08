@@ -248,6 +248,8 @@ jobs:
           exporters:
             jaeger_storage_exporter:
               trace_storage: memstore
+            debug:
+              verbosity: detailed
 
           processors:
             batch:
@@ -259,6 +261,10 @@ jobs:
                 receivers: [otlp]
                 processors: [batch]
                 exporters: [jaeger_storage_exporter]
+              logs:
+                receivers: [otlp]
+                processors: [batch]
+                exporters: [debug]
           EOF
 
       - name: Start Docker Compose

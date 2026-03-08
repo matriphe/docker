@@ -5,7 +5,8 @@ receivers:
     attributes:
       service.name: "nginx-${env:ENVIRONMENT:-local}"
     operators:
-      - type: json_parser
+      - type: regex_parser
+        regex: '^(?P<remote_addr>[^ ]+) - (?P<remote_user>[^ ]+) \[(?P<time_local>[^\]]+)\] "(?P<request>[^"]+)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
         timestamp:
           parse_from: attributes.time_local
           layout: "%d/%b/%Y:%H:%M:%S %z"
