@@ -51,8 +51,8 @@ jobs:
             echo "Checking for PR tag: $PR_TAG"
 
             # Check nginx image
-            if docker manifest inspect \
-              ghcr.io/${{ github.repository }}/nginx:${PR_TAG} > /dev/null 2>&1; then
+            NGINX_IMAGE="ghcr.io/${{ github.repository }}/nginx:${PR_TAG}"
+            if docker manifest inspect "$NGINX_IMAGE" > /dev/null 2>&1; then
               NGINX_TAG=$PR_TAG
               echo "✓ Found Nginx PR built image: $NGINX_TAG"
             else
@@ -60,8 +60,8 @@ jobs:
             fi
 
             # Check php image
-            if docker manifest inspect \
-              ghcr.io/${{ github.repository }}/php:${PR_TAG} > /dev/null 2>&1; then
+            PHP_IMAGE="ghcr.io/${{ github.repository }}/php:${PR_TAG}"
+            if docker manifest inspect "$PHP_IMAGE" > /dev/null 2>&1; then
               PHP_TAG=$PR_TAG
               echo "✓ Found PHP PR built image: $PHP_TAG"
             else
@@ -69,8 +69,8 @@ jobs:
             fi
 
             # Check wordpress image
-            if docker manifest inspect \
-              ghcr.io/${{ github.repository }}/wordpress:${PR_TAG} > /dev/null 2>&1; then
+            WP_IMAGE="ghcr.io/${{ github.repository }}/wordpress:${PR_TAG}"
+            if docker manifest inspect "$WP_IMAGE" > /dev/null 2>&1; then
               WP_TAG=$PR_TAG
               echo "✓ Found WordPress PR built image: $WP_TAG"
             else
@@ -101,7 +101,8 @@ jobs:
 
           services:
             openresty:
-              image: ghcr.io/${{ github.repository }}/nginx:${{ steps.tags.outputs.nginx }}
+              image: >-
+                ghcr.io/${{ github.repository }}/nginx:${{ steps.tags.outputs.nginx }}
               ports:
                 - "8080:80"
               environment:
@@ -120,7 +121,8 @@ jobs:
                 sentry-mock:
                   condition: service_healthy
             php-fpm:
-              image: ghcr.io/${{ github.repository }}/php:${{ steps.tags.outputs.php }}
+              image: >-
+                ghcr.io/${{ github.repository }}/php:${{ steps.tags.outputs.php }}
               environment:
                 - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
                 - OTEL_SERVICE_NAME=php-fpm
@@ -136,7 +138,8 @@ jobs:
                 retries: 5
             wordpress:
               user: root
-              image: ghcr.io/${{ github.repository }}/wordpress:${{ steps.tags.outputs.wordpress }}
+              image: >-
+                ghcr.io/${{ github.repository }}/wordpress:${{ steps.tags.outputs.wordpress }}
               environment:
                 - WORDPRESS_DB_HOST=db
                 - WORDPRESS_DB_USER=wordpress
@@ -222,25 +225,17 @@ jobs:
           EOF
 
           cat << 'EOF' > .test-env/jaeger.yaml
-          service:
-            extensions: [jaeger_storage, jaeger_query, health_check]
-            pipelines:
-              traces:
-                receivers: [otlp]
-                processors: [batch]
-                exporters: [jaeger_storage_exporter]
-
           extensions:
+            health_check:
+              endpoint: 0.0.0.0:13133
+            jaeger_query:
+              storage:
+                traces: memstore
             jaeger_storage:
               backends:
                 memstore:
                   memory:
                     max_traces: 10000
-            jaeger_query:
-              storage:
-                traces: memstore
-            health_check:
-              endpoint: 0.0.0.0:13133
 
           receivers:
             otlp:
@@ -250,12 +245,20 @@ jobs:
                 http:
                   endpoint: 0.0.0.0:4318
 
-          processors:
-            batch:
-
           exporters:
             jaeger_storage_exporter:
               trace_storage: memstore
+
+          processors:
+            batch:
+
+          service:
+            extensions: [health_check, jaeger_query, jaeger_storage]
+            pipelines:
+              traces:
+                receivers: [otlp]
+                processors: [batch]
+                exporters: [jaeger_storage_exporter]
           EOF
 
       - name: Start Docker Compose
@@ -370,7 +373,7 @@ jobs:
           echo "=== OTel Collector Sidecar Tests ==="
 
           echo "--- Generating nginx traffic to populate access.log ---"
-          for i in $(seq 1 10); do
+          for _ in $(seq 1 10); do
             curl -sf http://localhost:8080/ > /dev/null || true
             curl -sf http://localhost:8080/info.php > /dev/null || true
           done
