@@ -15,6 +15,7 @@ Custom OpenResty image based on `openresty/openresty:alpine`, built from [`nginx
 - Same configuration compatibility as Nginx
 - Lua scripting support for custom logic
 - Maintains all proxy and security settings from original Nginx config
+- Built-in OpenTelemetry Collector sidecar for log collection and forwarding
 
 ### Pull OpenResty Image
 
