@@ -442,7 +442,7 @@ jobs:
           sleep 5
           # Inspect all received requests to debug the path
           echo "--- WireMock Received Requests ---"
-          curl -sf http://localhost:9099/__admin/requests | jq '.requests[] | {method, url, body}' || echo "No requests found"
+          curl -sf http://localhost:9099/__admin/requests | jq '.requests[] | {method, url, urlPath}' || echo "No requests found"
 
           SENTRY_COUNT=$(curl -sf -X POST http://localhost:9099/__admin/requests/count \
             -H "Content-Type: application/json" \
