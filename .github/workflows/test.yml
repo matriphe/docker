@@ -391,10 +391,15 @@ jobs:
           sleep 5
 
           echo "=== Test 1: otelcol-contrib process is running ==="
+          # Wait a bit more for background process to start
+          sleep 5
           OTEL_PID=$(docker compose exec -T openresty pgrep otelcol-contrib 2>/dev/null || true)
           if [ -z "$OTEL_PID" ]; then
             echo "FAIL: otelcol-contrib is NOT running inside the openresty container"
+            echo "--- OpenResty Container Logs ---"
             docker compose logs openresty
+            echo "--- otelcol.log content (if any) ---"
+            docker compose exec -T openresty cat /var/log/nginx/otelcol.log || echo "otelcol.log not found"
             exit 1
           fi
           echo "PASS: otelcol-contrib is running (PID: $OTEL_PID)"
