@@ -2,6 +2,8 @@ FROM openresty/openresty:alpine
 
 ARG USER=www-data
 
+LABEL maintainer="Muhammad Zamroni <halo@matriphe.com>"
+
 # Copy configuration files early (rarely change, maximizes cache hits)
 COPY ./nginx/config/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf.template
 COPY ./nginx/config/otel-config.yaml /etc/opentelemetry-collector/config.yaml
