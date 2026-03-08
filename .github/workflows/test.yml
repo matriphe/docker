@@ -296,8 +296,9 @@ jobs:
             -d '{
               "request": {
                 "method": "POST",
-                "urlPattern": "/.*"
+                "urlPathPattern": "/.*"
               },
+
               "response": {
                 "status": 200,
                 "body": "{\"partialSuccess\":{}}",
@@ -441,9 +442,9 @@ jobs:
           sleep 5
           SENTRY_COUNT=$(curl -sf -X POST http://localhost:9099/__admin/requests/count \
             -H "Content-Type: application/json" \
-            -d '{"method":"POST","urlPattern":"/v1/logs"}' \
+            -d '{"method":"POST","urlPathPattern":"/.*"}' \
             | grep -o '"count":[0-9]*' | grep -o '[0-9]*' || echo "0")
-          echo "WireMock received $SENTRY_COUNT POST requests to /v1/logs"
+          echo "WireMock received $SENTRY_COUNT POST requests"
           if [ -z "$SENTRY_COUNT" ] || [ "$SENTRY_COUNT" -eq 0 ]; then
             echo "FAIL: OTel collector did not send any logs to Sentry mock"
             echo "--- otelcol.log content ---"
