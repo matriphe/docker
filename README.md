@@ -239,6 +239,37 @@ docker compose up -d
 # Access Jaeger UI at http://localhost:16686
 ```
 
+### OpenResty Log Collection (OTel Collector)
+
+The OpenResty image includes a built-in OpenTelemetry Collector sidecar that automatically parses Nginx access and error logs and forwards them to OTLP-compatible backends (like Jaeger) and Sentry.
+
+#### Configuring Sentry OTLP Logs
+
+To send Nginx logs to Sentry using OTLP, configure these environment variables for the `openresty` service:
+
+| Environment Variable | Description | Example |
+|----------------------|-------------|---------|
+| `SENTRY_OTLP_ENDPOINT` | The Sentry OTLP base URL (no path needed) | `https://oXXXXX.ingest.sentry.io` |
+| `SENTRY_DSN_KEY` | The key part of your Sentry DSN | `abc123def456...` |
+| `ENVIRONMENT` | Deployment environment name | `production`, `staging` |
+
+**Example `docker-compose.yml` configuration:**
+
+```yaml
+services:
+  openresty:
+    image: ghcr.io/matriphe/docker/nginx:openresty
+    ports:
+      - "80:80"
+    environment:
+      - ENVIRONMENT=production
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - SENTRY_OTLP_ENDPOINT=https://oXXXXX.ingest.sentry.io
+      - SENTRY_DSN_KEY=your-sentry-dsn-key
+```
+
+The collector automatically appends `/v1/logs` to the `SENTRY_OTLP_ENDPOINT`. Access logs are parsed as JSON and enriched with service information before export.
+
 ### Service-Specific Monitoring
 
 #### PHP-FPM Monitoring
