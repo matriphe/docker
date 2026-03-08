@@ -1,0 +1,51 @@
+receivers:
+  filelog:
+    include:
+      - /var/log/nginx/access.log
+    attributes:
+      service.name: "nginx-${env:ENVIRONMENT:-local}"
+    operators:
+      - type: json_parser
+        timestamp:
+          parse_from: attributes.time_local
+          layout: "%d/%b/%Y:%H:%M:%S %z"
+  filelog/error:
+    include:
+      - /var/log/nginx/error.log
+    attributes:
+      service.name: "nginx-${env:ENVIRONMENT:-local}"
+      log.type: error
+
+processors:
+  batch:
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+    timeout: "1s"
+
+exporters:
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+  otlphttp/otlp:
+    endpoint: "${env:OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}"
+    compression: gzip
+  otlphttp/sentry:
+    endpoint: "${env:SENTRY_OTLP_ENDPOINT}"
+    headers:
+      x-sentry-auth: "sentry sentry_key=${env:SENTRY_DSN_KEY:-disabled}"
+    compression: gzip
+    encoding: proto
+
+service:
+  pipelines:
+    logs:
+      receivers:
+        - filelog
+        - filelog/error
+      processors:
+        - batch
+      exporters:
+        - debug
+        - otlphttp/otlp
+        - otlphttp/sentry

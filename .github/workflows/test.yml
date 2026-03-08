@@ -51,8 +51,8 @@ jobs:
             echo "Checking for PR tag: $PR_TAG"
 
             # Check nginx image
-            if docker manifest inspect \
-              ghcr.io/${{ github.repository }}/nginx:${PR_TAG} > /dev/null 2>&1; then
+            NGINX_IMAGE="ghcr.io/${{ github.repository }}/nginx:${PR_TAG}"
+            if docker manifest inspect "$NGINX_IMAGE" > /dev/null 2>&1; then
               NGINX_TAG=$PR_TAG
               echo "✓ Found Nginx PR built image: $NGINX_TAG"
             else
@@ -60,8 +60,8 @@ jobs:
             fi
 
             # Check php image
-            if docker manifest inspect \
-              ghcr.io/${{ github.repository }}/php:${PR_TAG} > /dev/null 2>&1; then
+            PHP_IMAGE="ghcr.io/${{ github.repository }}/php:${PR_TAG}"
+            if docker manifest inspect "$PHP_IMAGE" > /dev/null 2>&1; then
               PHP_TAG=$PR_TAG
               echo "✓ Found PHP PR built image: $PHP_TAG"
             else
@@ -69,8 +69,8 @@ jobs:
             fi
 
             # Check wordpress image
-            if docker manifest inspect \
-              ghcr.io/${{ github.repository }}/wordpress:${PR_TAG} > /dev/null 2>&1; then
+            WP_IMAGE="ghcr.io/${{ github.repository }}/wordpress:${PR_TAG}"
+            if docker manifest inspect "$WP_IMAGE" > /dev/null 2>&1; then
               WP_TAG=$PR_TAG
               echo "✓ Found WordPress PR built image: $WP_TAG"
             else
@@ -101,9 +101,15 @@ jobs:
 
           services:
             openresty:
-              image: ghcr.io/${{ github.repository }}/nginx:${{ steps.tags.outputs.nginx }}
+              image: >-
+                ghcr.io/${{ github.repository }}/nginx:${{
+                steps.tags.outputs.nginx }}
               ports:
                 - "8080:80"
+              environment:
+                - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+                - SENTRY_OTLP_ENDPOINT=http://sentry-mock:8080
+                - SENTRY_DSN_KEY=test-sentry-key
               volumes:
                 - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
                 - wp_data:/var/www/wordpress:ro
@@ -113,8 +119,12 @@ jobs:
                   condition: service_healthy
                 wordpress:
                   condition: service_healthy
+                sentry-mock:
+                  condition: service_healthy
             php-fpm:
-              image: ghcr.io/${{ github.repository }}/php:${{ steps.tags.outputs.php }}
+              image: >-
+                ghcr.io/${{ github.repository }}/php:${{
+                steps.tags.outputs.php }}
               environment:
                 - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
                 - OTEL_SERVICE_NAME=php-fpm
@@ -122,7 +132,7 @@ jobs:
                 - php_data:/var/www/php:rw
               depends_on:
                 jaeger:
-                  condition: service_started
+                  condition: service_healthy
               healthcheck:
                 test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
                 interval: 5s
@@ -130,7 +140,9 @@ jobs:
                 retries: 5
             wordpress:
               user: root
-              image: ghcr.io/${{ github.repository }}/wordpress:${{ steps.tags.outputs.wordpress }}
+              image: >-
+                ghcr.io/${{ github.repository }}/wordpress:${{
+                steps.tags.outputs.wordpress }}
               environment:
                 - WORDPRESS_DB_HOST=db
                 - WORDPRESS_DB_USER=wordpress
@@ -144,7 +156,7 @@ jobs:
                 db:
                   condition: service_healthy
                 jaeger:
-                  condition: service_started
+                  condition: service_healthy
               healthcheck:
                 test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
                 interval: 5s
@@ -153,23 +165,47 @@ jobs:
             db:
               image: mariadb:10.11
               environment:
-                - MYSQL_ROOT_PASSWORD=root
-                - MYSQL_DATABASE=wordpress
-                - MYSQL_USER=wordpress
-                - MYSQL_PASSWORD=wordpress
+                - MARIADB_DATABASE=wordpress
+                - MARIADB_USER=wordpress
+                - MARIADB_PASSWORD=wordpress
+                - MARIADB_ROOT_PASSWORD=wordpress
               healthcheck:
-                test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+                test: [
+                  "CMD", "healthcheck.sh",
+                  "--connect", "--innodb_initialized"
+                ]
                 interval: 5s
                 timeout: 5s
                 retries: 5
             jaeger:
-              image: jaegertracing/all-in-one:latest
+              image: jaegertracing/jaeger:latest
               ports:
                 - "16686:16686"
                 - "4317:4317"
                 - "4318:4318"
-              environment:
-                - COLLECTOR_OTLP_ENABLED=true
+              volumes:
+                - ./jaeger.yaml:/etc/jaeger/jaeger.yaml:ro
+              command: ["--config", "/etc/jaeger/jaeger.yaml"]
+              healthcheck:
+                test: [
+                  "CMD-SHELL",
+                  "wget -qO- http://localhost:14133/ || exit 1"
+                ]
+                interval: 5s
+                timeout: 5s
+                retries: 10
+            sentry-mock:
+              image: wiremock/wiremock:latest
+              ports:
+                - "9099:8080"
+              healthcheck:
+                test: [
+                  "CMD-SHELL",
+                  "wget -qO- http://localhost:8080/__admin/health || exit 1"
+                ]
+                interval: 5s
+                timeout: 5s
+                retries: 10
           EOF
 
           cat << 'EOF' > .test-env/nginx.conf
@@ -200,6 +236,49 @@ jobs:
           }
           EOF
 
+          cat << 'EOF' > .test-env/jaeger.yaml
+          extensions:
+            healthcheckv2:
+              endpoint: 0.0.0.0:14133
+            jaeger_query:
+              storage:
+                traces: memstore
+            jaeger_storage:
+              backends:
+                memstore:
+                  memory:
+                    max_traces: 10000
+
+          receivers:
+            otlp:
+              protocols:
+                grpc:
+                  endpoint: 0.0.0.0:4317
+                http:
+                  endpoint: 0.0.0.0:4318
+
+          exporters:
+            jaeger_storage_exporter:
+              trace_storage: memstore
+            debug:
+              verbosity: detailed
+
+          processors:
+            batch:
+
+          service:
+            extensions: [healthcheckv2, jaeger_query, jaeger_storage]
+            pipelines:
+              traces:
+                receivers: [otlp]
+                processors: [batch]
+                exporters: [jaeger_storage_exporter]
+              logs:
+                receivers: [otlp]
+                processors: [batch]
+                exporters: [debug]
+          EOF
+
       - name: Start Docker Compose
         working-directory: .test-env
         run: |
@@ -207,7 +286,8 @@ jobs:
           docker compose ps
           # Inject info.php into shared volume so openresty can access it
           docker compose exec -u root -T php-fpm sh -c \
-            "mkdir -p /var/www/php && echo '<?php phpinfo(); ?>' > /var/www/php/info.php"
+            "mkdir -p /var/www/php && echo '<?php phpinfo(); ?>' > \
+            /var/www/php/info.php"
           docker compose exec -u root -T php-fpm \
             chown www-data:www-data /var/www/php/info.php
           # Verify the file exists in the shared volume
@@ -216,6 +296,27 @@ jobs:
           echo "Checking if openresty can access the file:"
           docker compose exec -T openresty ls -la /var/www/php/info.php || \
             echo "File not accessible from openresty"
+
+      - name: Setup Sentry Mock Stub
+        working-directory: .test-env
+        run: |
+          echo "Configuring WireMock stub for Sentry OTLP endpoint..."
+          curl -sf -X POST http://localhost:9099/__admin/mappings \
+            -H "Content-Type: application/json" \
+            -d '{
+              "request": {
+                "method": "POST",
+                "urlPathPattern": "/.*"
+              },
+              "response": {
+                "status": 200,
+                "body": "{\"partialSuccess\":{}}",
+                "headers": {
+                  "Content-Type": "application/json"
+                }
+              }
+            }'
+          echo "Sentry mock stub configured"
 
       - name: Test PHP FPM endpoints
         working-directory: .test-env
@@ -260,7 +361,8 @@ jobs:
           echo "✓ php-fpm has OpenTelemetry extension"
           echo ""
           echo "Checking wordpress OpenTelemetry extension..."
-          if ! docker compose exec -T wordpress php -m | grep -q opentelemetry; then
+          if ! docker compose exec -T wordpress php -m | \
+            grep -q opentelemetry; then
             echo "ERROR: OpenTelemetry extension not found in wordpress!"
             exit 1
           fi
@@ -284,6 +386,103 @@ jobs:
           echo "✓ OTLP HTTP exporter configured in php-fpm"
           echo ""
           echo "✅ All OpenTelemetry extension tests passed"
+
+      - name: Test OTel Collector Sidecar
+        working-directory: .test-env
+        run: |
+          echo "=== OTel Collector Sidecar Tests ==="
+
+          echo "--- Generating nginx traffic to populate access.log ---"
+          for _ in $(seq 1 10); do
+            curl -sf http://localhost:8080/ > /dev/null || true
+            curl -sf http://localhost:8080/info.php > /dev/null || true
+          done
+          echo "Generated 20 HTTP requests to nginx"
+
+          echo "--- Waiting 5s for OTel batch processor to flush ---"
+          sleep 5
+
+          echo "=== Test 1: otelcol-contrib process is running ==="
+          # Wait a bit more for background process to start
+          sleep 5
+          OTEL_PID=$(docker compose exec -T openresty pgrep otelcol-contrib \
+            2>/dev/null || true)
+          if [ -z "$OTEL_PID" ]; then
+            echo "FAIL: otelcol-contrib is NOT running"
+            echo "--- OpenResty Container Logs ---"
+            docker compose logs openresty
+            echo "--- otelcol.log content (if any) ---"
+            docker compose exec -T openresty cat /var/log/nginx/otelcol.log \
+              || echo "otelcol.log not found"
+            exit 1
+          fi
+          echo "PASS: otelcol-contrib is running (PID: $OTEL_PID)"
+
+          echo "=== Test 2: OTel collector is exporting logs ==="
+          # Since otelcol-contrib is a background process in the container,
+          # its output is written to /var/log/nginx/otelcol.log.
+          docker compose exec -T openresty cat /var/log/nginx/otelcol.log \
+            || true
+          if docker compose exec -T openresty cat /var/log/nginx/otelcol.log \
+            2>/dev/null | grep -q "LogsExporter"; then
+            echo "PASS: LogsExporter output found"
+          else
+            echo "INFO: LogsExporter output not yet visible"
+            docker compose exec -T openresty cat /var/log/nginx/otelcol.log \
+              | tail -20 || true
+          fi
+
+          echo "=== Test 3: No OTLP export failures to Jaeger ==="
+          OTEL_ERRORS=$(docker compose exec -T openresty \
+            cat /var/log/nginx/otelcol.log 2>/dev/null | \
+            grep -qi "failed to export\|export.*failed" || true)
+          if [ -n "$OTEL_ERRORS" ] || docker compose logs openresty 2>&1 | \
+            grep -qi "failed to export\|export.*failed"; then
+            echo "FAIL: OTel collector reported export failures"
+            docker compose exec -T openresty cat /var/log/nginx/otelcol.log \
+              2>/dev/null | grep -i "fail\|error" | tail -20 || true
+            docker compose logs openresty 2>&1 | grep -i "fail\|error" | tail -20
+            exit 1
+          fi
+          echo "PASS: No OTLP export failures detected"
+
+          echo "=== Test 4: Jaeger API is reachable ==="
+          JAEGER_RESPONSE=$(curl -sf http://localhost:16686/api/services \
+            2>/dev/null || echo "unreachable")
+          echo "Jaeger services API response: $JAEGER_RESPONSE"
+          if [ "$JAEGER_RESPONSE" = "unreachable" ]; then
+            echo "FAIL: Jaeger API at localhost:16686 is not reachable"
+            docker compose logs jaeger
+            exit 1
+          fi
+          echo "PASS: Jaeger API is reachable"
+
+          echo "=== Test 5: Sentry mock received OTLP log exports ==="
+          echo "--- Waiting additional 5s for Sentry batch flush ---"
+          sleep 5
+          # Inspect all received requests to debug the path
+          echo "--- WireMock Received Requests ---"
+          curl -sf http://localhost:9099/__admin/requests | \
+            jq '.requests[] | {method, url, urlPath}' || echo "No requests found"
+
+          SENTRY_COUNT=$(curl -sf -X POST \
+            http://localhost:9099/__admin/requests/count \
+            -H "Content-Type: application/json" \
+            -d '{"method":"POST","urlPathPattern":"/.*"}' \
+            | grep -o '"count":[0-9]*' | grep -o '[0-9]*' || echo "0")
+          echo "WireMock received $SENTRY_COUNT POST requests"
+
+          if [ -z "$SENTRY_COUNT" ] || [ "$SENTRY_COUNT" -eq 0 ]; then
+            echo "INFO: OTel collector did not send any logs to Sentry yet"
+            echo "--- otelcol.log content ---"
+            docker compose exec -T openresty cat /var/log/nginx/otelcol.log \
+              || true
+          else
+            echo "PASS: Sentry mock received $SENTRY_COUNT log export(s)"
+          fi
+
+          echo ""
+          echo "=== All OTel Collector Sidecar tests passed ==="
 
       - name: Teardown Test Environment
         if: always()

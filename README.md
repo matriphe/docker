@@ -15,6 +15,7 @@ Custom OpenResty image based on `openresty/openresty:alpine`, built from [`nginx
 - Same configuration compatibility as Nginx
 - Lua scripting support for custom logic
 - Maintains all proxy and security settings from original Nginx config
+- Built-in OpenTelemetry Collector sidecar for log collection and forwarding
 
 ### Pull OpenResty Image
 
@@ -182,21 +183,92 @@ services:
       - MYSQL_PASSWORD=wordpress
 
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/jaeger:latest
     ports:
       - "16686:16686"
       - "4317:4317"
       - "4318:4318"
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
+    volumes:
+      - ./jaeger.yaml:/etc/jaeger/jaeger.yaml:ro
+    command: ["--config", "/etc/jaeger/jaeger.yaml"]
 ```
 
-2. Start services and view Jaeger UI:
+2. Create a Jaeger v2 config file (`jaeger.yaml`):
+
+Jaeger v2 requires a YAML configuration file. Use this minimal in-memory config for development:
+
+```yaml
+service:
+  extensions: [jaeger_storage, jaeger_query]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [jaeger_storage_exporter]
+
+extensions:
+  jaeger_storage:
+    backends:
+      memstore:
+        memory:
+          max_traces: 10000
+  jaeger_query:
+    storage:
+      traces: memstore
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: memstore
+```
+
+3. Start services and view Jaeger UI:
 
 ```bash
 docker compose up -d
 # Access Jaeger UI at http://localhost:16686
 ```
+
+### OpenResty Log Collection (OTel Collector)
+
+The OpenResty image includes a built-in OpenTelemetry Collector sidecar that automatically parses Nginx access and error logs and forwards them to OTLP-compatible backends (like Jaeger) and Sentry.
+
+#### Configuring Sentry OTLP Logs
+
+To send Nginx logs to Sentry using OTLP, configure these environment variables for the `openresty` service:
+
+| Environment Variable   | Description                               | Example                           |
+| ---------------------- | ----------------------------------------- | --------------------------------- |
+| `SENTRY_OTLP_ENDPOINT` | The Sentry OTLP base URL (no path needed) | `https://oXXXXX.ingest.sentry.io` |
+| `SENTRY_DSN_KEY`       | The key part of your Sentry DSN           | `abc123def456...`                 |
+| `ENVIRONMENT`          | Deployment environment name               | `production`, `staging`           |
+
+**Example `docker-compose.yml` configuration:**
+
+```yaml
+services:
+  openresty:
+    image: ghcr.io/matriphe/docker/nginx:openresty
+    ports:
+      - "80:80"
+    environment:
+      - ENVIRONMENT=production
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - SENTRY_OTLP_ENDPOINT=https://oXXXXX.ingest.sentry.io
+      - SENTRY_DSN_KEY=your-sentry-dsn-key
+```
+
+The collector automatically appends `/v1/logs` to the `SENTRY_OTLP_ENDPOINT`. Access logs are parsed as JSON and enriched with service information before export.
 
 ### Service-Specific Monitoring
 
