@@ -181,7 +181,7 @@ jobs:
                 - ./jaeger.yaml:/etc/jaeger/jaeger.yaml:ro
               command: ["--config", "/etc/jaeger/jaeger.yaml"]
               healthcheck:
-                test: ["CMD-SHELL", "wget -qO- http://localhost:13133/ || exit 1"]
+                test: ["CMD-SHELL", "wget -qO- http://localhost:14133/ || exit 1"]
                 interval: 5s
                 timeout: 5s
                 retries: 10
@@ -227,7 +227,7 @@ jobs:
           cat << 'EOF' > .test-env/jaeger.yaml
           extensions:
             health_check:
-              endpoint: 0.0.0.0:13133
+              endpoint: 0.0.0.0:14133
             jaeger_query:
               storage:
                 traces: memstore
@@ -264,8 +264,11 @@ jobs:
       - name: Start Docker Compose
         working-directory: .test-env
         run: |
-          docker compose up -d --wait
+          docker compose up -d
+          echo "Waiting for containers to settle..."
+          sleep 10
           docker compose ps
+          docker compose logs jaeger
           # Inject info.php into shared volume so openresty can access it
           docker compose exec -u root -T php-fpm sh -c \
             "mkdir -p /var/www/php && echo '<?php phpinfo(); ?>' > /var/www/php/info.php"
