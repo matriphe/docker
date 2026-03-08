@@ -27,12 +27,15 @@ exporters:
     verbosity: detailed
     sampling_initial: 5
     sampling_thereafter: 200
-  otlphttp/sentry:
-    logs_endpoint: "${env:SENTRY_OTLP_ENDPOINT}"
-    headers:
-      x-sentry-auth: "sentry sentry_key=${env:SENTRY_DSN_KEY}"
+  otlphttp/otlp:
+    endpoint: "${env:OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}"
     compression: gzip
-    encoding: proto
+  # otlphttp/sentry:
+  #   logs_endpoint: "${env:SENTRY_OTLP_ENDPOINT}"
+  #   headers:
+  #     x-sentry-auth: "sentry sentry_key=${env:SENTRY_DSN_KEY}"
+  #   compression: gzip
+  #   encoding: proto
 
 service:
   pipelines:
@@ -44,4 +47,5 @@ service:
         - batch
       exporters:
         - debug
+        - otlphttp/otlp
         # - otlphttp/sentry
