@@ -293,11 +293,11 @@ jobs:
             -d '{
               "request": {
                 "method": "POST",
-                "urlPattern": "/api/envelope/.*"
+                "urlPattern": "/v1/logs"
               },
               "response": {
                 "status": 200,
-                "body": "{}",
+                "body": "{\"partialSuccess\":{}}",
                 "headers": {
                   "Content-Type": "application/json"
                 }
@@ -433,9 +433,9 @@ jobs:
           sleep 5
           SENTRY_COUNT=$(curl -sf -X POST http://localhost:9099/__admin/requests/count \
             -H "Content-Type: application/json" \
-            -d '{"method":"POST","urlPattern":"/api/envelope/.*"}' \
+            -d '{"method":"POST","urlPattern":"/v1/logs"}' \
             | grep -o '"count":[0-9]*' | grep -o '[0-9]*')
-          echo "WireMock received $SENTRY_COUNT POST requests to /api/envelope/"
+          echo "WireMock received $SENTRY_COUNT POST requests to /v1/logs"
           if [ -z "$SENTRY_COUNT" ] || [ "$SENTRY_COUNT" -eq 0 ]; then
             echo "FAIL: OTel collector did not send any logs to Sentry mock"
             docker compose logs openresty 2>&1 | grep -i "sentry\|otlp" | tail -20
