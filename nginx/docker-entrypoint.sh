@@ -45,7 +45,7 @@ if [ "$1" = "nginx" ] || [ "$1" = "nginx-debug" ] || [ "$1" = "openresty" ]; the
 
     # Process Nginx configuration template
     entrypoint_log "$0: Generating nginx.conf from template..."
-    envsubst < /usr/local/openresty/nginx/conf/nginx.conf.template > /usr/local/openresty/nginx/conf/nginx.conf
+    envsubst '${ENVIRONMENT}' < /usr/local/openresty/nginx/conf/nginx.conf.template > /usr/local/openresty/nginx/conf/nginx.conf
 
     # Start OpenTelemetry Collector sidecar if binary and config exist
     if [ -f "/usr/bin/otelcol-contrib" ] && [ -f "/etc/opentelemetry-collector/config.yaml" ]; then
