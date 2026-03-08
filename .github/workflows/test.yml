@@ -398,16 +398,21 @@ jobs:
           echo "PASS: otelcol-contrib is running (PID: $OTEL_PID)"
 
           echo "=== Test 2: OTel collector is exporting logs (debug output) ==="
-          if docker compose logs openresty 2>&1 | grep -q "LogsExporter"; then
+          # Since otelcol-contrib is a background process in the container, its output
+          # is written to /var/log/nginx/otelcol.log. We capture it here.
+          docker compose exec -T openresty cat /var/log/nginx/otelcol.log || true
+          if docker compose exec -T openresty cat /var/log/nginx/otelcol.log 2>/dev/null | grep -q "LogsExporter"; then
             echo "PASS: LogsExporter output found - OTel collector is processing logs"
           else
             echo "INFO: LogsExporter output not yet visible (may depend on log volume)"
-            docker compose logs openresty 2>&1 | tail -20
+            docker compose exec -T openresty cat /var/log/nginx/otelcol.log | tail -20 || true
           fi
 
           echo "=== Test 3: No OTLP export failures to Jaeger ==="
-          if docker compose logs openresty 2>&1 | grep -qi "failed to export\|export.*failed"; then
+          OTEL_ERRORS=$(docker compose exec -T openresty cat /var/log/nginx/otelcol.log 2>/dev/null | grep -qi "failed to export\|export.*failed" || true)
+          if [ -n "$OTEL_ERRORS" ] || docker compose logs openresty 2>&1 | grep -qi "failed to export\|export.*failed"; then
             echo "FAIL: OTel collector reported export failures"
+            docker compose exec -T openresty cat /var/log/nginx/otelcol.log 2>/dev/null | grep -i "fail\|error" | tail -20 || true
             docker compose logs openresty 2>&1 | grep -i "fail\|error" | tail -20
             exit 1
           fi

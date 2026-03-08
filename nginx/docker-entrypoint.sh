@@ -50,7 +50,7 @@ if [ "$1" = "nginx" ] || [ "$1" = "nginx-debug" ] || [ "$1" = "openresty" ]; the
     # Start OpenTelemetry Collector sidecar if binary and config exist
     if [ -f "/usr/bin/otelcol-contrib" ] && [ -f "/etc/opentelemetry-collector/config.yaml" ]; then
         entrypoint_log "$0: Starting OpenTelemetry Collector..."
-        /usr/bin/otelcol-contrib --config=/etc/opentelemetry-collector/config.yaml > /dev/stdout 2>&1 &
+        /usr/bin/otelcol-contrib --config=/etc/opentelemetry-collector/config.yaml > /var/log/nginx/otelcol.log 2>&1 &
     fi
 fi
 
