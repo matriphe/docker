@@ -110,6 +110,7 @@ jobs:
                 - SENTRY_OTLP_ENDPOINT=http://sentry-mock:8080
                 - SENTRY_DSN_KEY=test-sentry-key
 
+
               volumes:
                 - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
                 - wp_data:/var/www/wordpress:ro
