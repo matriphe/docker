@@ -264,11 +264,13 @@ jobs:
       - name: Start Docker Compose
         working-directory: .test-env
         run: |
-          docker compose up -d
+          docker compose up -d || true
           echo "Waiting for containers to settle..."
           sleep 10
           docker compose ps
           docker compose logs jaeger
+          # If jaeger failed, we should see why above.
+          # We still try to proceed but expect failures in exec if containers are down.
           # Inject info.php into shared volume so openresty can access it
           docker compose exec -u root -T php-fpm sh -c \
             "mkdir -p /var/www/php && echo '<?php phpinfo(); ?>' > /var/www/php/info.php"
@@ -441,4 +443,7 @@ jobs:
       - name: Teardown Test Environment
         if: always()
         working-directory: .test-env
-        run: docker compose down -v
+        run: |
+          docker compose logs jaeger
+          docker compose logs sentry-mock
+          docker compose down -v
