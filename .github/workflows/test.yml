@@ -106,6 +106,8 @@ jobs:
                 - "8080:80"
               environment:
                 - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+                - SENTRY_OTLP_ENDPOINT=http://sentry-mock:8080/api/envelope/
+                - SENTRY_DSN_KEY=test-sentry-key
               volumes:
                 - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
                 - wp_data:/var/www/wordpress:ro
@@ -114,6 +116,8 @@ jobs:
                 php-fpm:
                   condition: service_healthy
                 wordpress:
+                  condition: service_healthy
+                sentry-mock:
                   condition: service_healthy
             php-fpm:
               image: ghcr.io/${{ github.repository }}/php:${{ steps.tags.outputs.php }}
@@ -218,6 +222,27 @@ jobs:
           echo "Checking if openresty can access the file:"
           docker compose exec -T openresty ls -la /var/www/php/info.php || \
             echo "File not accessible from openresty"
+
+      - name: Setup Sentry Mock Stub
+        working-directory: .test-env
+        run: |
+          echo "Configuring WireMock stub for Sentry OTLP endpoint..."
+          curl -sf -X POST http://localhost:9099/__admin/mappings \
+            -H "Content-Type: application/json" \
+            -d '{
+              "request": {
+                "method": "POST",
+                "urlPattern": "/api/envelope/.*"
+              },
+              "response": {
+                "status": 200,
+                "body": "{}",
+                "headers": {
+                  "Content-Type": "application/json"
+                }
+              }
+            }'
+          echo "Sentry mock stub configured"
 
       - name: Test PHP FPM endpoints
         working-directory: .test-env
@@ -336,6 +361,21 @@ jobs:
             exit 1
           fi
           echo "PASS: Jaeger API is reachable"
+
+          echo "=== Test 5: Sentry mock received OTLP log exports ==="
+          echo "--- Waiting additional 5s for Sentry batch flush ---"
+          sleep 5
+          SENTRY_COUNT=$(curl -sf -X POST http://localhost:9099/__admin/requests/count \
+            -H "Content-Type: application/json" \
+            -d '{"method":"POST","urlPattern":"/api/envelope/.*"}' \
+            | grep -o '"count":[0-9]*' | grep -o '[0-9]*')
+          echo "WireMock received $SENTRY_COUNT POST requests to /api/envelope/"
+          if [ -z "$SENTRY_COUNT" ] || [ "$SENTRY_COUNT" -eq 0 ]; then
+            echo "FAIL: OTel collector did not send any logs to Sentry mock"
+            docker compose logs openresty 2>&1 | grep -i "sentry\|otlp" | tail -20
+            exit 1
+          fi
+          echo "PASS: Sentry mock received $SENTRY_COUNT log export(s)"
 
           echo ""
           echo "=== All OTel Collector Sidecar tests passed ==="
