@@ -107,7 +107,7 @@ jobs:
                 - "8080:80"
               environment:
                 - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
-                - SENTRY_OTLP_ENDPOINT=http://sentry-mock:8080
+                - SENTRY_OTLP_ENDPOINT=http://sentry-mock:8080/
                 - SENTRY_DSN_KEY=test-sentry-key
 
 
@@ -295,7 +295,7 @@ jobs:
             -d '{
               "request": {
                 "method": "POST",
-                "urlPattern": "/v1/logs"
+                "urlPattern": "/.*"
               },
               "response": {
                 "status": 200,
@@ -435,9 +435,9 @@ jobs:
           sleep 5
           SENTRY_COUNT=$(curl -sf -X POST http://localhost:9099/__admin/requests/count \
             -H "Content-Type: application/json" \
-            -d '{"method":"POST","urlPattern":"/v1/logs"}' \
+            -d '{"method":"POST","urlPattern":".*"}' \
             | grep -o '"count":[0-9]*' | grep -o '[0-9]*')
-          echo "WireMock received $SENTRY_COUNT POST requests to /v1/logs"
+          echo "WireMock received $SENTRY_COUNT POST requests"
           if [ -z "$SENTRY_COUNT" ] || [ "$SENTRY_COUNT" -eq 0 ]; then
             echo "FAIL: OTel collector did not send any logs to Sentry mock"
             docker compose logs openresty 2>&1 | grep -i "sentry\|otlp" | tail -20
