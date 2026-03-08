@@ -8,6 +8,8 @@ FROM docker.io/library/wordpress:6-php${PHP_VERSION}-fpm-alpine AS wordpress
 ARG WORKDIR=/var/www/wordpress
 ARG USER=www-data
 
+LABEL maintainer="Muhammad Zamroni <halo@matriphe.com>"
+
 ENV WORDPRESS_ROOT=${WORKDIR} \
     USER=${USER}
 
