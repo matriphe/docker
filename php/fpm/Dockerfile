@@ -16,12 +16,12 @@ ARG RUNTIME_DEPS="git pkgconf fcgi zip unzip curl \
 ARG BUILD_DEPS="zlib-dev libzip-dev libpng-dev libwebp-dev libxpm-dev libjpeg-turbo-dev freetype-dev libxml2-dev icu-dev oniguruma-dev curl-dev"
 
 ARG PHP_EXTENSIONS="pdo pdo_mysql xml mbstring exif bcmath intl zip curl"
-ARG PECL_EXTENSIONS="apcu excimer"
-# Build concurrency argument to speed up extension compilation 
+ARG PECL_EXTENSIONS="apcu excimer opentelemetry"
+# Build concurrency argument to speed up extension compilation
 # on multi-core systems (e.g., -j$(nproc))
 ARG JOB_NUM=""
 
-# JIT is disabled because it often causes segmentation faults when building 
+# JIT is disabled because it often causes segmentation faults when building
 # for ARM64 via QEMU emulation on x86_64 CI runners.
 ARG PHP_OPCACHE_ENABLE=1
 ARG PHP_OPCACHE_JIT=0
@@ -44,6 +44,7 @@ WORKDIR ${WORKDIR}
 # This prevents configuration changes from invalidating the extension compilation cache
 COPY config/php/php.ini /usr/local/etc/php/php.ini
 COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY php/fpm/config/php-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
 
 # Install runtime dependencies only
 RUN --mount=type=cache,target=/var/cache/apk \

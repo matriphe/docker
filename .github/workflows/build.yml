@@ -145,7 +145,7 @@ jobs:
       image_tag: >-
         ${{ github.event_name == 'pull_request' &&
         format('PR-{0}', github.event.pull_request.number || github.run_number) ||
-        'otel' }}
+        'openresty' }}
       push_image: true
       sign_image: ${{ github.event_name != 'pull_request' }}
     secrets: inherit

@@ -33,6 +33,8 @@ jobs:
             keep_tag: php8.4-fpm
           - package_name: docker/nginx
             keep_tag: otel
+          - package_name: docker/nginx
+            keep_tag: openresty
     steps:
       - name: Delete old package versions
         uses: actions/github-script@v8
