@@ -31,7 +31,7 @@ exporters:
     endpoint: "${env:OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}"
     compression: gzip
   otlphttp/sentry:
-    endpoint: "${env:SENTRY_OTLP_ENDPOINT:-http://localhost:9999/api/envelope/}"
+    endpoint: "${env:SENTRY_OTLP_ENDPOINT}"
     headers:
       x-sentry-auth: "sentry sentry_key=${env:SENTRY_DSN_KEY:-disabled}"
     compression: gzip
