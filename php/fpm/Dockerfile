@@ -13,13 +13,15 @@ LABEL maintainer="Muhammad Zamroni <halo@matriphe.com>"
 ARG RUNTIME_DEPS="git pkgconf fcgi zip unzip curl \
     libzip libpng libwebp libxpm libjpeg-turbo freetype libxml2 icu-libs oniguruma libcurl"
 
-ARG PHP_EXTENSIONS="pdo pdo_mysql xml mbstring exif bcmath intl zip curl gd opcache"
+ARG BUILD_DEPS="zlib-dev libzip-dev libpng-dev libwebp-dev libxpm-dev libjpeg-turbo-dev freetype-dev libxml2-dev icu-dev oniguruma-dev curl-dev"
+
+ARG PHP_EXTENSIONS="pdo pdo_mysql xml mbstring exif bcmath intl zip curl"
 ARG PECL_EXTENSIONS="apcu excimer opentelemetry"
-# Build concurrency argument to speed up extension compilation 
+# Build concurrency argument to speed up extension compilation
 # on multi-core systems (e.g., -j$(nproc))
 ARG JOB_NUM=""
 
-# JIT is disabled because it often causes segmentation faults when building 
+# JIT is disabled because it often causes segmentation faults when building
 # for ARM64 via QEMU emulation on x86_64 CI runners.
 ARG PHP_OPCACHE_ENABLE=1
 ARG PHP_OPCACHE_JIT=0
@@ -38,29 +40,47 @@ COPY --from=composer /usr/bin/composer /usr/bin/composer
 
 WORKDIR ${WORKDIR}
 
-# Layer 1: Install runtime dependencies
-RUN apk add --no-cache ${RUNTIME_DEPS}
+# Copy config files BEFORE expensive compilation
+# This prevents configuration changes from invalidating the extension compilation cache
+COPY config/php/php.ini /usr/local/etc/php/php.ini
+COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY php/fpm/config/php-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
 
-# Layer 2: Download and configure extension installer, install all extensions
-RUN set -eux; \
-    curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions; \
-    chmod +x /usr/local/bin/install-php-extensions; \
-    install-php-extensions ${PHP_EXTENSIONS} ${PECL_EXTENSIONS}; \
-    rm /usr/local/bin/install-php-extensions; \
+# Install runtime dependencies only
+RUN --mount=type=cache,target=/var/cache/apk \
+    set -eux; \
+    apk add --no-cache ${RUNTIME_DEPS}
+
+# Install build dependencies and compile PHP extensions
+# Cache mount preserves /var/cache/apk between builds for faster apk operations
+# Note: /tmp is not cached as the step ends with rm -rf /tmp/* which would empty
+# the cache, and GCC temp files from QEMU arm64 builds conflict with parallel amd64 builds
+RUN --mount=type=cache,target=/var/cache/apk \
+    set -eux; \
+    apk add --no-cache --virtual .build-deps \
+        $PHPIZE_DEPS \
+        ${BUILD_DEPS}; \
+    # gd requires pre-configuration for FreeType, JPEG, and WebP support.
+    # opcache is explicitly installed here to ensure it's correctly compiled
+    # and enabled with the specified optimizations.
+    docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp; \
+    docker-php-ext-install -j"${JOB_NUM:-$(nproc)}" gd opcache ${PHP_EXTENSIONS}; \
+    pecl install ${PECL_EXTENSIONS}; \
+    docker-php-ext-enable ${PECL_EXTENSIONS}; \
+    apk del .build-deps; \
     rm -rf /tmp/* /var/tmp/*
 
-# Layer 3: Create application user (UID 82 is Alpine default for www-data)
-# This ensures consistent file permissions when sharing volumes with other Alpine containers
+# We use UID 82 (the Alpine default for www-data) to ensure consistent
+# file permissions when sharing volumes with the Nginx container,
+# which is also based on Alpine.
+# Separate from compilation step to allow this to be cached independently
 RUN set -eux; \
     (addgroup -g 82 -S "${USER}" 2>/dev/null || true); \
     (adduser -u 82 -D -S -G "${USER}" "${USER}" 2>/dev/null || true); \
     chown -R "${USER}:${USER}" "${WORKDIR}"; \
     chmod -R 755 "${WORKDIR}"
 
-COPY config/php/php.ini /usr/local/etc/php/php.ini
-COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
-COPY php/fpm/config/php-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
-
+# Configure www.conf with user substitution
 RUN set -eux; \
     sed -i "s/www-data/${USER}/g" /usr/local/etc/php-fpm.d/www.conf
 
