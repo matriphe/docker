@@ -133,6 +133,23 @@ jobs:
                 continue;
               }
 
+              const ageInDays = (new Date() - new Date(version.created_at)) / (1000 * 60 * 60 * 24);
+
+              // 1. Keep untagged images because they are often child manifests of multi-arch images.
+              if (tags.length === 0) {
+                kept += 1;
+                core.info(`KEEP    id=${version.id} tags=${tagList} (untagged multi-arch blob)`);
+                continue;
+              }
+              
+              // 2. Keep recent PR tags to avoid breaking active Pull Requests.
+              const isRecentPR = tags.some(tag => tag.startsWith('PR-')) && ageInDays < 14;
+              if (isRecentPR) {
+                kept += 1;
+                core.info(`KEEP    id=${version.id} tags=${tagList} (recent PR, age=${Math.round(ageInDays)}d)`);
+                continue;
+              }
+
               candidates += 1;
               if (dryRun) {
                 core.info(`DRYRUN  id=${version.id} tags=${tagList}`);
