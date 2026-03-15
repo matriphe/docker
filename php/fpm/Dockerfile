@@ -11,7 +11,7 @@ ARG USER=www-data
 LABEL maintainer="Muhammad Zamroni <halo@matriphe.com>"
 
 ARG RUNTIME_DEPS="git pkgconf fcgi zip unzip curl \
-    libzip libpng libwebp libxpm libjpeg-turbo freetype libxml2 icu-libs oniguruma libcurl"
+    libzip libpng libwebp libxpm libjpeg-turbo freetype libxml2 icu-libs icu-data-full oniguruma libcurl"
 
 ARG BUILD_DEPS="zlib-dev libzip-dev libpng-dev libwebp-dev libxpm-dev libjpeg-turbo-dev freetype-dev libxml2-dev icu-dev oniguruma-dev curl-dev"
 
