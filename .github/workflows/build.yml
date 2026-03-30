@@ -56,19 +56,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  php_version:
-    if: >-
-      ${{ always() && (needs.detect-changes.outputs.php == 'true' ||
-      needs.detect-changes.outputs.wordpress == 'true') }}
-    needs: [detect-changes]
-    runs-on: ubuntu-latest
-    outputs:
-      php_version: ${{ steps.vars.outputs.php_version }}
-    steps:
-      - name: Set shared build variables
-        id: vars
-        run: echo "php_version=8.4" >> "$GITHUB_OUTPUT"
-
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -152,9 +139,16 @@ jobs:
 
   php-fpm:
     if: >-
-      ${{ always() && needs.php_version.result == 'success' &&
-      needs.detect-changes.outputs.php == 'true' }}
-    needs: [php_version, detect-changes]
+      ${{ always() && needs.detect-changes.outputs.php == 'true' }}
+    needs: [detect-changes]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php_version: "8.4"
+            latest_tag: "latest"
+          - php_version: "8.5"
+            latest_tag: ""
     permissions:
       contents: read
       packages: write
@@ -164,21 +158,29 @@ jobs:
       context: .
       file: ./php/fpm/Dockerfile
       image_name: matriphe/docker/php
-      image_tag: >-
+      image_tags: |
         ${{ github.event_name == 'pull_request' &&
-        format('PR-{0}', github.event.pull_request.number || github.run_number) ||
-        format('{0}-fpm', needs.php_version.outputs.php_version) }}
+          format('PR-{0}-{1}-fpm', github.event.pull_request.number || github.run_number, matrix.php_version) ||
+          format('{0}-fpm', matrix.php_version) }}
+        ${{ github.event_name != 'pull_request' && matrix.latest_tag || '' }}
       build_args: |
-        PHP_VERSION=${{ needs.php_version.outputs.php_version }}
+        PHP_VERSION=${{ matrix.php_version }}
       push_image: true
       sign_image: ${{ github.event_name != 'pull_request' }}
     secrets: inherit
 
   wordpress:
     if: >-
-      ${{ always() && needs.php_version.result == 'success' &&
-      needs.detect-changes.outputs.wordpress == 'true' }}
-    needs: [php_version, detect-changes]
+      ${{ always() && needs.detect-changes.outputs.wordpress == 'true' }}
+    needs: [detect-changes]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php_version: "8.4"
+            latest_tag: "latest"
+          - php_version: "8.5"
+            latest_tag: ""
     permissions:
       contents: read
       packages: write
@@ -188,12 +190,13 @@ jobs:
       context: .
       file: ./wordpress/Dockerfile
       image_name: matriphe/docker/wordpress
-      image_tag: >-
+      image_tags: |
         ${{ github.event_name == 'pull_request' &&
-        format('PR-{0}', github.event.pull_request.number || github.run_number) ||
-        format('php{0}-fpm', needs.php_version.outputs.php_version) }}
+          format('PR-{0}-php{1}-fpm', github.event.pull_request.number || github.run_number, matrix.php_version) ||
+          format('php{0}-fpm', matrix.php_version) }}
+        ${{ github.event_name != 'pull_request' && matrix.latest_tag || '' }}
       build_args: |
-        PHP_VERSION=${{ needs.php_version.outputs.php_version }}
+        PHP_VERSION=${{ matrix.php_version }}
       push_image: true
       sign_image: ${{ github.event_name != 'pull_request' }}
     secrets: inherit
@@ -207,7 +210,12 @@ jobs:
        needs.wordpress.result == 'success' ||
        (github.event_name == 'workflow_dispatch' &&
         github.event.inputs.run_tests_only == 'true'))
+    strategy:
+      fail-fast: false
+      matrix:
+        php_version: ["8.4", "8.5"]
     uses: ./.github/workflows/test.yml
     with:
       pr_number: ${{ github.event.pull_request.number || '' }}
+      php_version: ${{ matrix.php_version }}
     secrets: inherit

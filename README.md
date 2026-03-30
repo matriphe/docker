@@ -25,7 +25,7 @@ docker pull ghcr.io/matriphe/docker/nginx:openresty
 
 ## PHP-FPM
 
-Custom PHP-FPM image based on Alpine (`php:8.4-fpm-alpine`), built from [`php/fpm`](php/fpm) with:
+Custom PHP-FPM images based on Alpine (`php:8.4-fpm-alpine` and `php:8.5-fpm-alpine`), built from [`php/fpm`](php/fpm) with:
 
 - Shared PHP config from [`config/php/php.ini`](config/php/php.ini)
 - Shared FPM pool config from [`config/php/www.conf`](config/php/www.conf)
@@ -40,11 +40,12 @@ Custom PHP-FPM image based on Alpine (`php:8.4-fpm-alpine`), built from [`php/fp
 
 ```console
 docker pull ghcr.io/matriphe/docker/php:8.4-fpm
+docker pull ghcr.io/matriphe/docker/php:8.5-fpm
 ```
 
 ## WordPress
 
-Custom WordPress image based on Alpine (`wordpress:6-php8.4-fpm-alpine`), with:
+Custom WordPress images based on Alpine (`wordpress:6-php8.4-fpm-alpine` and `wordpress:6-php8.5-fpm-alpine`), with:
 
 - `wp-cli` available in the container
 - Composer available in the container
@@ -56,6 +57,7 @@ Custom WordPress image based on Alpine (`wordpress:6-php8.4-fpm-alpine`), with:
 
 ```console
 docker pull ghcr.io/matriphe/docker/wordpress:php8.4-fpm
+docker pull ghcr.io/matriphe/docker/wordpress:php8.5-fpm
 ```
 
 ## CI / Publish Schedule
@@ -64,7 +66,11 @@ The GitHub Actions Docker publish workflow runs on Friday at `04:00 UTC` (`05:00
 
 - `ghcr.io/matriphe/docker/nginx:openresty`
 - `ghcr.io/matriphe/docker/php:8.4-fpm`
+- `ghcr.io/matriphe/docker/php:8.5-fpm`
+- `ghcr.io/matriphe/docker/php:latest` (`8.4-fpm`)
 - `ghcr.io/matriphe/docker/wordpress:php8.4-fpm`
+- `ghcr.io/matriphe/docker/wordpress:php8.5-fpm`
+- `ghcr.io/matriphe/docker/wordpress:latest` (`php8.4-fpm`)
 
 ## Monitoring Setup with OpenTelemetry
 
