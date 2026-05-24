@@ -28,9 +28,9 @@ jobs:
       matrix:
         include:
           - package_name: docker/php
-            keep_tag: "8.4-fpm,cache"
+            keep_tag: "8.4-fpm,8.5-fpm,latest,cache"
           - package_name: docker/wordpress
-            keep_tag: "php8.4-fpm,cache"
+            keep_tag: "php8.4-fpm,php8.5-fpm,latest,cache"
           - package_name: docker/nginx
             keep_tag: "otel,openresty,cache"
     steps:

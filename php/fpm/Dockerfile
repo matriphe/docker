@@ -61,10 +61,16 @@ RUN --mount=type=cache,target=/var/cache/apk \
         $PHPIZE_DEPS \
         ${BUILD_DEPS}; \
     # gd requires pre-configuration for FreeType, JPEG, and WebP support.
-    # opcache is explicitly installed here to ensure it's correctly compiled
-    # and enabled with the specified optimizations.
+    # PHP 8.5's extension installer is unstable when multiple extensions are
+    # requested in one docker-php-ext-install invocation, so install each one
+    # separately while keeping everything in a single RUN to avoid image bloat.
+    # Zend OPcache is already bundled in the upstream PHP base images, so only
+    # the non-bundled core extensions need to be compiled here.
     docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp; \
-    docker-php-ext-install -j"${JOB_NUM:-$(nproc)}" gd opcache ${PHP_EXTENSIONS}; \
+    docker-php-ext-install -j1 gd; \
+    for extension in ${PHP_EXTENSIONS}; do \
+        docker-php-ext-install -j1 "${extension}"; \
+    done; \
     pecl install ${PECL_EXTENSIONS}; \
     docker-php-ext-enable ${PECL_EXTENSIONS}; \
     apk del .build-deps; \

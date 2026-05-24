@@ -12,8 +12,13 @@ on:
         type: string
         default: ""
       image_tag:
-        required: true
+        required: false
         type: string
+        default: ""
+      image_tags:
+        required: false
+        type: string
+        default: ""
       build_args:
         required: false
         type: string
@@ -74,6 +79,42 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ inputs.image_name != '' &&
             inputs.image_name || github.repository }}
 
+      - name: Resolve image tags
+        id: tags
+        env:
+          IMAGE_NAME: ${{ inputs.image_name != '' && inputs.image_name || github.repository }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          IMAGE_TAGS: ${{ inputs.image_tags }}
+        run: |
+          set -eu
+
+          raw_tags="${IMAGE_TAGS}"
+          if [ -z "${raw_tags}" ]; then
+            raw_tags="${IMAGE_TAG}"
+          fi
+
+          resolved_tags=""
+          while IFS= read -r tag; do
+            tag="$(printf '%s' "${tag}" | xargs)"
+            if [ -z "${tag}" ]; then
+              continue
+            fi
+            resolved_tags="${resolved_tags}${REGISTRY}/${IMAGE_NAME}:${tag}"$'\n'
+          done <<EOF
+          ${raw_tags}
+          EOF
+
+          if [ -z "${resolved_tags}" ]; then
+            echo "No image tags were resolved." >&2
+            exit 1
+          fi
+
+          {
+            echo "tags<<EOF"
+            printf '%s' "${resolved_tags}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
@@ -92,13 +133,15 @@ jobs:
           cache-to: |
             type=registry,ref=${{ env.REGISTRY }}/${{ inputs.image_name != '' && inputs.image_name || github.repository }}:cache,mode=max
             type=gha,mode=max
-          tags: ${{ env.REGISTRY }}/${{ inputs.image_name != '' && inputs.image_name || github.repository }}:${{ inputs.image_tag }}
+          tags: ${{ steps.tags.outputs.tags }}
 
       - name: Sign the published Docker image
         if: ${{ inputs.sign_image }}
         env:
-          TAGS: >-
-            ${{ env.REGISTRY }}/${{ inputs.image_name != '' &&
-            inputs.image_name || github.repository }}:${{ inputs.image_tag }}
+          TAGS: ${{ steps.tags.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@"${DIGEST}"
+        run: |
+          printf '%s\n' "${TAGS}" | while IFS= read -r tag; do
+            [ -n "${tag}" ] || continue
+            cosign sign --yes "${tag}@${DIGEST}"
+          done
