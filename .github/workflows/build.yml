@@ -146,8 +146,10 @@ jobs:
       matrix:
         include:
           - php_version: "8.4"
+            php_patch_version: "8.4.21"
             latest_tag: "latest"
           - php_version: "8.5"
+            php_patch_version: "8.5.6"
             latest_tag: ""
     permissions:
       contents: read
@@ -163,8 +165,11 @@ jobs:
           format('PR-{0}-{1}-fpm', github.event.pull_request.number || github.run_number, matrix.php_version) ||
           format('{0}-fpm', matrix.php_version) }}
         ${{ github.event_name != 'pull_request' && matrix.latest_tag || '' }}
+        ${{ github.event_name != 'pull_request' && matrix.php_patch_version &&
+          format('{0}-fpm', matrix.php_patch_version) || '' }}
       build_args: |
         PHP_VERSION=${{ matrix.php_version }}
+        PHP_PATCH_VERSION=${{ matrix.php_patch_version }}
       push_image: true
       sign_image: ${{ github.event_name != 'pull_request' }}
     secrets: inherit
@@ -178,8 +183,10 @@ jobs:
       matrix:
         include:
           - php_version: "8.4"
+            php_patch_version: "8.4.21"
             latest_tag: "latest"
           - php_version: "8.5"
+            php_patch_version: "8.5.6"
             latest_tag: ""
     permissions:
       contents: read
@@ -195,8 +202,11 @@ jobs:
           format('PR-{0}-php{1}-fpm', github.event.pull_request.number || github.run_number, matrix.php_version) ||
           format('php{0}-fpm', matrix.php_version) }}
         ${{ github.event_name != 'pull_request' && matrix.latest_tag || '' }}
+        ${{ github.event_name != 'pull_request' && matrix.php_patch_version &&
+          format('php{0}-fpm', matrix.php_patch_version) || '' }}
       build_args: |
         PHP_VERSION=${{ matrix.php_version }}
+        PHP_PATCH_VERSION=${{ matrix.php_patch_version }}
       push_image: true
       sign_image: ${{ github.event_name != 'pull_request' }}
     secrets: inherit
