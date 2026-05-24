@@ -9,6 +9,12 @@ name: Build
 on:
   pull_request:
     branches: ["main"]
+    paths:
+      - "nginx/**"
+      - "php/**"
+      - "config/**"
+      - "wordpress/**"
+      - ".github/workflows/**"
   schedule:
     # at 04:00 UTC on Friday (05:00/06:00 Europe/Berlin depending DST)
     # 0 is Sunday, 5 is Friday
