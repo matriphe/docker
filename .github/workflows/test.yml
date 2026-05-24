@@ -23,7 +23,7 @@ on:
           - "8.5"
 
 concurrency:
-  group: test-${{ github.event.pull_request.number || github.ref }}
+  group: test-${{ inputs.php_version || github.event.inputs.php_version }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
