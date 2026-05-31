@@ -55,6 +55,7 @@ services:
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
       - OTEL_SERVICE_NAME=php-fpm
+      - PHP_INI_MEMORY__LIMIT=256M
     volumes:
       - php_data:/var/www/php:rw
     depends_on:
@@ -254,6 +255,14 @@ docker compose -p "${COMPOSE_PROJECT_NAME}" -f "${TEST_ENV_DIR}/docker-compose.y
   cat /usr/local/etc/php/conf.d/opentelemetry.ini | grep -q "opentelemetry.enabled = On"
 docker compose -p "${COMPOSE_PROJECT_NAME}" -f "${TEST_ENV_DIR}/docker-compose.yml" exec -T php-fpm \
   cat /usr/local/etc/php/conf.d/opentelemetry.ini | grep -q "opentelemetry.traces_exporter = otlp_http"
+
+echo "=== Testing PHP_INI_* env var override ==="
+ACTUAL_MEMORY_LIMIT="$(docker compose -p "${COMPOSE_PROJECT_NAME}" -f "${TEST_ENV_DIR}/docker-compose.yml" exec -T php-fpm php -r 'echo ini_get("memory_limit");')"
+if [ "${ACTUAL_MEMORY_LIMIT}" != "256M" ]; then
+  echo "PHP_INI_MEMORY__LIMIT test failed: expected 256M, got ${ACTUAL_MEMORY_LIMIT}" >&2
+  exit 1
+fi
+echo "PHP_INI_MEMORY__LIMIT test passed: ${ACTUAL_MEMORY_LIMIT}"
 
 for _ in $(seq 1 10); do
   curl -sf "http://localhost:${APP_PORT}/" >/dev/null || true

@@ -1,0 +1,40 @@
+#!/bin/sh
+set -e
+
+# Process PHP_INI_* environment variables into PHP ini directives
+# Convention:
+#   PHP_INI_MEMORY__LIMIT=1G     → memory_limit = 1G
+#   PHP_INI_PCRE__BACKTRACK__LIMIT=1000000 → pcre.backtrack_limit = 1000000
+#   PHP_INI_OPCACHE__ENABLE=1   → opcache.enable = 1
+#
+# Rules:
+#   - Strip PHP_INI_ prefix
+#   - Replace __ (double underscore) with \x01 placeholder
+#   - Replace _ (single underscore) with .
+#   - Replace \x01 placeholder with _
+#   - Convert to lowercase
+#   - Output to /usr/local/etc/php/conf.d/zz-env-overrides.ini
+
+# Scan environment for PHP_INI_* variables
+for php_var in $(env | grep '^PHP_INI_' | sort); do
+    # Split on first =
+    ini_key="${php_var%%=*}"
+    ini_value="${php_var#*=}"
+
+    # Strip PHP_INI_ prefix
+    ini_name="${ini_key#PHP_INI_}"
+
+    # Convert double underscore to placeholder, single underscore to dot, then back
+    # Step 1: Replace __ with \x01 (we'll use # as placeholder since it's simpler in shell)
+    # Step 2: Replace _ with .
+    # Step 3: Replace placeholder with _
+    # Step 4: Convert to lowercase
+    ini_directive=$(echo "$ini_name" | \
+        sed 's/__/\x01/g; s/_/./g; s/\x01/_/g' | \
+        tr '[:upper:]' '[:lower:]')
+
+    echo "Setting PHP ini: $ini_directive = $ini_value"
+    echo "$ini_directive = $ini_value" >> /usr/local/etc/php/conf.d/zz-env-overrides.ini
+done
+
+exec "$@"

@@ -41,6 +41,33 @@ Custom PHP-FPM images based on Alpine (`php:8.4-fpm-alpine` and `php:8.5-fpm-alp
 ```console
 docker pull ghcr.io/matriphe/docker/php:8.4-fpm
 docker pull ghcr.io/matriphe/docker/php:8.5-fpm
+
+### Configuration via Environment Variables
+
+PHP ini values can be overridden at container runtime using `PHP_INI_*` environment variables.
+
+**Naming convention:**
+
+| Env Var | PHP ini directive |
+|---|---|
+| `PHP_INI_MEMORY__LIMIT` | `memory_limit` |
+| `PHP_INI_MAX_EXECUTION__TIME` | `max_execution_time` |
+| `PHP_INI_PCRE__BACKTRACK__LIMIT` | `pcre.backtrack_limit` |
+| `PHP_INI_OPCACHE__ENABLE` | `opcache.enable` |
+| `PHP_INI_SESSION__GC__MAXLIFETIME` | `session.gc_maxlifetime` |
+
+Rules: double underscore `__` becomes a literal `_`; single `_` becomes a `.` (section separator).
+
+**Usage example:**
+
+```yaml
+services:
+  php-fpm:
+    image: ghcr.io/matriphe/docker/php:8.4-fpm
+    environment:
+      - PHP_INI_MEMORY__LIMIT=1G
+      - PHP_INI_MAX_EXECUTION__TIME=120
+      - PHP_INI_OPCACHE__ENABLE=1
 ```
 
 ## WordPress
