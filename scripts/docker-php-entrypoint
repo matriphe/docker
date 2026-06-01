@@ -1,0 +1,31 @@
+#!/bin/sh
+set -e
+
+# Process PHP_INI_* environment variables into PHP ini overrides
+# Convention:
+#   PHP_INI_MEMORY__LIMIT=1G      → memory_limit = 1G
+#   PHP_INI_PCRE__BACKTRACK__LIMIT → pcre.backtrack_limit
+#   PHP_INI_OPCACHE__ENABLE=1     → opcache.enable = 1
+#
+# Rules:
+#   - Strip PHP_INI_ prefix
+#   - __ (double underscore) → _ (literal underscore)
+#   - _ (single underscore)  → . (dot/section separator)
+#   - Convert to lowercase
+#   - Write to /usr/local/etc/php/conf.d/zz-env-overrides.ini
+
+for php_var in $(env | grep '^PHP_INI_' | sort); do
+    ini_key="${php_var%%=*}"
+    ini_value="${php_var#*=}"
+    ini_name="${ini_key#PHP_INI_}"
+
+    # All _ → ., then .. back to _ (avoids hex escapes for BusyBox compat)
+    ini_directive=$(echo "$ini_name" | \
+        sed 's/_/./g; s/\.\./_/g' | \
+        tr '[:upper:]' '[:lower:]')
+
+    echo "Setting PHP ini: $ini_directive = $ini_value"
+    echo "$ini_directive = $ini_value" >> /usr/local/etc/php/conf.d/zz-env-overrides.ini
+done
+
+exec /usr/local/bin/docker-php-original-entrypoint "$@"

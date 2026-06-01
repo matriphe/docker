@@ -45,6 +45,12 @@ WORKDIR ${WORKDIR}
 COPY config/php/php.ini /usr/local/etc/php/php.ini
 COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 COPY php/fpm/config/php-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
+# Save original entrypoint, then override with our wrapper
+RUN cp /usr/local/bin/docker-php-entrypoint /usr/local/bin/docker-php-original-entrypoint
+COPY scripts/docker-php-entrypoint /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-php-entrypoint
+
+ENTRYPOINT ["docker-php-entrypoint"]
 
 # Install runtime dependencies only
 RUN --mount=type=cache,target=/var/cache/apk \
@@ -91,3 +97,5 @@ RUN set -eux; \
     sed -i "s/www-data/${USER}/g" /usr/local/etc/php-fpm.d/www.conf
 
 EXPOSE ${PHP_FPM_PORT}
+
+CMD ["php-fpm"]
