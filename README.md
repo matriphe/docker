@@ -38,7 +38,7 @@ Custom PHP-FPM images based on Alpine (`php:8.4-fpm-alpine` and `php:8.5-fpm-alp
 
 ### Pull PHP-FPM Image
 
-```console
+````console
 docker pull ghcr.io/matriphe/docker/php:8.4-fpm
 docker pull ghcr.io/matriphe/docker/php:8.5-fpm
 
@@ -68,7 +68,7 @@ services:
       - PHP_INI_MEMORY__LIMIT=1G
       - PHP_INI_MAX_EXECUTION__TIME=120
       - PHP_INI_OPCACHE__ENABLE=1
-```
+````
 
 ## WordPress
 
