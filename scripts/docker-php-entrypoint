@@ -1,11 +1,6 @@
 #!/bin/sh
 set -e
 
-# first arg is `-f` or `--some-option`
-if [ "${1#-}" != "$1" ]; then
-	set -- php-fpm "$@"
-fi
-
 # Process PHP_INI_* environment variables into PHP ini overrides
 # Convention:
 #   PHP_INI_MEMORY__LIMIT=1G      → memory_limit = 1G
@@ -33,4 +28,4 @@ for php_var in $(env | grep '^PHP_INI_' | sort); do
     echo "$ini_directive = $ini_value" >> /usr/local/etc/php/conf.d/zz-env-overrides.ini
 done
 
-exec "$@"
+exec /usr/local/bin/docker-php-original-entrypoint "$@"

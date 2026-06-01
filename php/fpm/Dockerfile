@@ -45,6 +45,8 @@ WORKDIR ${WORKDIR}
 COPY config/php/php.ini /usr/local/etc/php/php.ini
 COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 COPY php/fpm/config/php-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
+# Save original entrypoint, then override with our wrapper
+RUN cp /usr/local/bin/docker-php-entrypoint /usr/local/bin/docker-php-original-entrypoint
 COPY scripts/docker-php-entrypoint /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-php-entrypoint
 
