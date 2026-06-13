@@ -57,6 +57,9 @@ on:
         default: "false"
         type: boolean
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -64,14 +67,17 @@ concurrency:
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       nginx: ${{ steps.set.outputs.nginx }}
       php: ${{ steps.set.outputs.php }}
       wordpress: ${{ steps.set.outputs.wordpress }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Detect changed paths
         uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
@@ -93,8 +99,16 @@ jobs:
 
       - name: Set outputs
         id: set
+        env:
+          EVENT: ${{ github.event_name }}
+          REBUILD_ALL: ${{ github.event.inputs.rebuild_all }}
+          REBUILD_NGINX: ${{ github.event.inputs.rebuild_nginx }}
+          REBUILD_PHP: ${{ github.event.inputs.rebuild_php }}
+          REBUILD_WORDPRESS: ${{ github.event.inputs.rebuild_wordpress }}
+          FILTER_NGINX: ${{ steps.filter.outputs.nginx }}
+          FILTER_PHP: ${{ steps.filter.outputs.php }}
+          FILTER_WORDPRESS: ${{ steps.filter.outputs.wordpress }}
         run: |
-          EVENT="${{ github.event_name }}"
           if [ "$EVENT" = "schedule" ]; then
             {
               echo "nginx=true"
@@ -102,7 +116,7 @@ jobs:
               echo "wordpress=true"
             } >> "$GITHUB_OUTPUT"
           elif [ "$EVENT" = "workflow_dispatch" ]; then
-            if [ "${{ github.event.inputs.rebuild_all }}" = "true" ]; then
+            if [ "$REBUILD_ALL" = "true" ]; then
               {
                 echo "nginx=true"
                 echo "php=true"
@@ -110,16 +124,16 @@ jobs:
               } >> "$GITHUB_OUTPUT"
             else
               {
-                echo "nginx=${{ github.event.inputs.rebuild_nginx }}"
-                echo "php=${{ github.event.inputs.rebuild_php }}"
-                echo "wordpress=${{ github.event.inputs.rebuild_wordpress }}"
+                echo "nginx=$REBUILD_NGINX"
+                echo "php=$REBUILD_PHP"
+                echo "wordpress=$REBUILD_WORDPRESS"
               } >> "$GITHUB_OUTPUT"
             fi
           else
             {
-              echo "nginx=${{ steps.filter.outputs.nginx }}"
-              echo "php=${{ steps.filter.outputs.php }}"
-              echo "wordpress=${{ steps.filter.outputs.wordpress }}"
+              echo "nginx=$FILTER_NGINX"
+              echo "php=$FILTER_PHP"
+              echo "wordpress=$FILTER_WORDPRESS"
             } >> "$GITHUB_OUTPUT"
           fi
 
@@ -132,7 +146,6 @@ jobs:
       id-token: write
     uses: ./.github/workflows/.docker-build-sign.yml
     with:
-      context: .
       file: ./nginx/Dockerfile
       image_name: matriphe/docker/nginx
       image_tag: >-
@@ -141,7 +154,6 @@ jobs:
         'openresty' }}
       push_image: true
       sign_image: ${{ github.event_name != 'pull_request' }}
-    secrets: inherit
 
   php-fpm:
     if: >-
@@ -163,7 +175,6 @@ jobs:
       id-token: write
     uses: ./.github/workflows/.docker-build-sign.yml
     with:
-      context: .
       file: ./php/fpm/Dockerfile
       image_name: matriphe/docker/php
       image_tags: |
@@ -178,7 +189,6 @@ jobs:
         PHP_PATCH_VERSION=${{ matrix.php_patch_version }}
       push_image: true
       sign_image: ${{ github.event_name != 'pull_request' }}
-    secrets: inherit
 
   wordpress:
     if: >-
@@ -200,7 +210,6 @@ jobs:
       id-token: write
     uses: ./.github/workflows/.docker-build-sign.yml
     with:
-      context: .
       file: ./wordpress/Dockerfile
       image_name: matriphe/docker/wordpress
       image_tags: |
@@ -215,9 +224,11 @@ jobs:
         PHP_PATCH_VERSION=${{ matrix.php_patch_version }}
       push_image: true
       sign_image: ${{ github.event_name != 'pull_request' }}
-    secrets: inherit
 
   run-test:
+    permissions:
+      contents: read
+      packages: read
     needs: [nginx, php-fpm, wordpress]
     if: >-
       always() &&
@@ -234,4 +245,3 @@ jobs:
     with:
       pr_number: ${{ github.event.pull_request.number || '' }}
       php_version: ${{ matrix.php_version }}
-    secrets: inherit
