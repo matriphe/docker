@@ -5,8 +5,9 @@ on:
   workflow_call:
     inputs:
       context:
-        required: true
+        required: false
         type: string
+        default: "."
       image_name:
         required: false
         type: string
@@ -50,7 +51,6 @@ jobs:
 
     env:
       REGISTRY: ghcr.io
-      CONTEXT: ${{ inputs.context }}
 
     steps:
       - name: Checkout repository
@@ -122,7 +122,6 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
-          context: ${{ env.CONTEXT }}
           file: ${{ inputs.file }}
           build-args: |
             ${{ inputs.build_args }}

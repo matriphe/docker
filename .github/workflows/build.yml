@@ -57,6 +57,9 @@ on:
         default: "false"
         type: boolean
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -64,6 +67,8 @@ concurrency:
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       nginx: ${{ steps.set.outputs.nginx }}
       php: ${{ steps.set.outputs.php }}
@@ -141,7 +146,6 @@ jobs:
       id-token: write
     uses: ./.github/workflows/.docker-build-sign.yml
     with:
-      context: .
       file: ./nginx/Dockerfile
       image_name: matriphe/docker/nginx
       image_tag: >-
@@ -150,7 +154,6 @@ jobs:
         'openresty' }}
       push_image: true
       sign_image: ${{ github.event_name != 'pull_request' }}
-    secrets: inherit
 
   php-fpm:
     if: >-
@@ -172,7 +175,6 @@ jobs:
       id-token: write
     uses: ./.github/workflows/.docker-build-sign.yml
     with:
-      context: .
       file: ./php/fpm/Dockerfile
       image_name: matriphe/docker/php
       image_tags: |
@@ -187,7 +189,6 @@ jobs:
         PHP_PATCH_VERSION=${{ matrix.php_patch_version }}
       push_image: true
       sign_image: ${{ github.event_name != 'pull_request' }}
-    secrets: inherit
 
   wordpress:
     if: >-
@@ -209,7 +210,6 @@ jobs:
       id-token: write
     uses: ./.github/workflows/.docker-build-sign.yml
     with:
-      context: .
       file: ./wordpress/Dockerfile
       image_name: matriphe/docker/wordpress
       image_tags: |
@@ -224,9 +224,11 @@ jobs:
         PHP_PATCH_VERSION=${{ matrix.php_patch_version }}
       push_image: true
       sign_image: ${{ github.event_name != 'pull_request' }}
-    secrets: inherit
 
   run-test:
+    permissions:
+      contents: read
+      packages: read
     needs: [nginx, php-fpm, wordpress]
     if: >-
       always() &&
@@ -243,4 +245,3 @@ jobs:
     with:
       pr_number: ${{ github.event.pull_request.number || '' }}
       php_version: ${{ matrix.php_version }}
-    secrets: inherit
