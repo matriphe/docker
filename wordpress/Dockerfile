@@ -2,7 +2,7 @@ ARG WORKDIR=/var/www/wordpress
 ARG PHP_VERSION=8.4
 
 FROM docker.io/library/wordpress:cli-php${PHP_VERSION} AS wp_cli
-FROM docker.io/library/composer:latest AS composer_bin
+FROM docker.io/library/composer:2.8 AS composer_bin
 FROM docker.io/library/wordpress:6-php${PHP_VERSION}-fpm-alpine AS wordpress
 
 ARG WORKDIR=/var/www/wordpress
@@ -31,8 +31,8 @@ RUN set -eux; \
 
 # Install utility and OpenTelemetry extensions
 RUN set -eux; \
-    apk add --no-cache jq nano curl; \
-    curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions; \
+    apk add --no-cache jq curl; \
+    curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/download/v2.7.1/install-php-extensions -o /usr/local/bin/install-php-extensions; \
     chmod +x /usr/local/bin/install-php-extensions; \
     install-php-extensions opentelemetry; \
     rm /usr/local/bin/install-php-extensions; \

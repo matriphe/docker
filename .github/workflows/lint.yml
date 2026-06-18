@@ -30,6 +30,6 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           VALIDATE_CHECKOV: false
           VALIDATE_JSCPD: false
-          VALIDATE_DOCKERFILE_HADOLINT: false
-          VALIDATE_TRIVY: false
+          VALIDATE_DOCKERFILE_HADOLINT: true
+          VALIDATE_TRIVY: true
           FILTER_REGEX_INCLUDE: '(^|/)(Dockerfile|\.github/workflows/.*\.ya?ml|.*\.md)$'
