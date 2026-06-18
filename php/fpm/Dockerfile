@@ -40,10 +40,7 @@ COPY --from=composer /usr/bin/composer /usr/bin/composer
 
 WORKDIR ${WORKDIR}
 
-# Copy config files BEFORE expensive compilation
-# This prevents configuration changes from invalidating the extension compilation cache
-COPY config/php/php.ini /usr/local/etc/php/php.ini
-COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+# Copy instrumentation config before compilation (no impact on build tools)
 COPY php/fpm/config/php-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
 # Save original entrypoint, then override with our wrapper
 RUN cp /usr/local/bin/docker-php-entrypoint /usr/local/bin/docker-php-original-entrypoint
@@ -81,6 +78,10 @@ RUN --mount=type=cache,target=/var/cache/apk \
     docker-php-ext-enable ${PECL_EXTENSIONS}; \
     apk del .build-deps; \
     rm -rf /tmp/* /var/tmp/*
+
+# Copy runtime config AFTER compilation so disable_functions doesn't break pecl
+COPY config/php/php.ini /usr/local/etc/php/php.ini
+COPY config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 
 # We use UID 82 (the Alpine default for www-data) to ensure consistent
 # file permissions when sharing volumes with the Nginx container,
