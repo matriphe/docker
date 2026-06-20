@@ -200,7 +200,7 @@ docker compose -p "${COMPOSE_PROJECT_NAME}" -f "${TEST_ENV_DIR}/docker-compose.y
 docker compose -p "${COMPOSE_PROJECT_NAME}" -f "${TEST_ENV_DIR}/docker-compose.yml" ps
 
 docker compose -p "${COMPOSE_PROJECT_NAME}" -f "${TEST_ENV_DIR}/docker-compose.yml" exec -u root -T php-fpm sh -c \
-  "mkdir -p /var/www/php && echo '<?php phpinfo(); ?>' > /var/www/php/info.php"
+  "mkdir -p /var/www/php && echo '<?php echo phpversion(); ?>' > /var/www/php/info.php"
 docker compose -p "${COMPOSE_PROJECT_NAME}" -f "${TEST_ENV_DIR}/docker-compose.yml" exec -u root -T php-fpm \
   chown www-data:www-data /var/www/php/info.php
 
@@ -222,7 +222,7 @@ curl -sf -X POST "http://localhost:${SENTRY_MOCK_PORT}/__admin/mappings" \
 
 docker compose -p "${COMPOSE_PROJECT_NAME}" -f "${TEST_ENV_DIR}/docker-compose.yml" exec -T openresty openresty -t
 curl -sI "http://localhost:${APP_PORT}/info.php" >/dev/null
-curl -s "http://localhost:${APP_PORT}/info.php" | grep "PHP Version ${EXPECTED_PHP_VERSION}"
+curl -s "http://localhost:${APP_PORT}/info.php" | grep "^${EXPECTED_PHP_VERSION}"
 
 ACTUAL_PHP_VERSION="$(docker compose -p "${COMPOSE_PROJECT_NAME}" -f "${TEST_ENV_DIR}/docker-compose.yml" exec -T php-fpm php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')"
 if [ "${ACTUAL_PHP_VERSION}" != "${EXPECTED_PHP_VERSION}" ]; then
