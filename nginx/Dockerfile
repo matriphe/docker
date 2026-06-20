@@ -35,10 +35,13 @@ RUN set -eux; \
     elif [ "${TARGETARCH}" = "arm64" ] || [ "${TARGETARCH}" = "aarch64" ]; then ARCH="arm64"; \
     else echo "Unsupported architecture: ${TARGETARCH}"; exit 1; fi; \
     curl -L -o otelcol.tar.gz "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTEL_VERSION}/otelcol-contrib_${OTEL_VERSION}_${TARGETOS}_${ARCH}.tar.gz"; \
+    curl -sSL "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${OTEL_VERSION}/opentelemetry-collector-releases_otelcol-contrib_checksums.txt" -o checksums.txt; \
+    grep "otelcol-contrib_${OTEL_VERSION}_${TARGETOS}_${ARCH}\.tar\.gz$" checksums.txt | sed "s|otelcol-contrib_${OTEL_VERSION}_${TARGETOS}_${ARCH}\.tar\.gz|otelcol.tar.gz|" > otelcol.tar.gz.sha256; \
+    sha256sum -c otelcol.tar.gz.sha256; \
     tar -xvf otelcol.tar.gz otelcol-contrib; \
     chmod +x otelcol-contrib; \
     mv otelcol-contrib /usr/bin/otelcol-contrib; \
-    rm otelcol.tar.gz
+    rm otelcol.tar.gz checksums.txt otelcol.tar.gz.sha256
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["openresty", "-g", "daemon off;"]
