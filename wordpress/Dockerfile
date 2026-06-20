@@ -17,7 +17,8 @@ ENV WORDPRESS_ROOT=${WORKDIR} \
 COPY --from=wp_cli /usr/local/bin/wp /usr/local/bin/wp
 COPY --from=composer_bin /usr/bin/composer /usr/bin/composer
 
-# Copy config files before the RUN step to prevent them from invalidating the WordPress base layer cache
+# Copy www.conf and instrumentation before RUN so they don't invalidate the WordPress base layer cache.
+# php.ini is intentionally copied AFTER the extension install step (see below).
 COPY --chown=www-data:www-data config/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 COPY --chown=www-data:www-data wordpress/config/wp-instrumentation.ini /usr/local/etc/php/conf.d/opentelemetry.ini
 
