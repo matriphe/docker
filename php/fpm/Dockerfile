@@ -2,7 +2,7 @@ ARG PHP_PATCH_VERSION=8.4.21
 ARG WORKDIR=/var/www/html
 ARG USER=www-data
 
-FROM docker.io/library/composer:2.8 AS composer
+FROM docker.io/library/composer:2.10 AS composer
 
 FROM docker.io/library/php:${PHP_PATCH_VERSION}-fpm-alpine AS php_fpm
 ARG WORKDIR=/var/www/html
