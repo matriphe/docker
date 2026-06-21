@@ -5,9 +5,11 @@ on:
     types: [created]
   pull_request_review_comment:
     types: [created]
+  issues:
+    types: [opened]
 
 jobs:
-  opencode:
+  opencode-comment:
     if: |
       contains(github.event.comment.body, ' /oc') ||
       startsWith(github.event.comment.body, '/oc') ||
@@ -31,3 +33,42 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
           model: opencode/big-pickle
+
+  opencode-issue:
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Run opencode
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/big-pickle
+          share: false
+          prompt: |
+            You are triaging a new GitHub issue for this repository.
+
+            Instructions:
+            1. Read the issue title and body carefully.
+            2. If the issue is spam, nonsensical, or clearly not a valid request, close it with a polite comment explaining why.
+            3. If the issue is a legitimate bug report or feature request:
+               - Provide a helpful response acknowledging the issue
+               - Add any relevant documentation links if applicable
+               - If there's a clear fix or code change needed, create a branch and open a pull request
+               - Reference the issue number in the PR description
+            4. If the issue needs more information, add a comment requesting clarification and label it accordingly.
+            5. If the issue is a duplicate, close it with a reference to the original issue.
+
+            Be helpful and professional. Always link to relevant documentation when available.
+            For code fixes, follow the repository's coding conventions and include tests when possible.
+            Label issues appropriately: bug, enhancement, documentation, duplicate, invalid, etc.
