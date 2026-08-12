@@ -1,9 +1,9 @@
 ARG WORKDIR=/var/www/wordpress
-ARG PHP_VERSION=8.4
+ARG PHP_VERSION=8.5
 
 FROM docker.io/library/wordpress:cli-php${PHP_VERSION} AS wp_cli
-FROM docker.io/library/composer:2.8 AS composer_bin
-FROM docker.io/library/wordpress:6-php${PHP_VERSION}-fpm-alpine AS wordpress
+FROM docker.io/library/composer:2.10 AS composer_bin
+FROM docker.io/library/wordpress:7-php${PHP_VERSION}-fpm-alpine AS wordpress
 
 ARG WORKDIR=/var/www/wordpress
 ARG USER=www-data
