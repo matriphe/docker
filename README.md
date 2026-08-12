@@ -72,7 +72,7 @@ services:
 
 ## WordPress
 
-Custom WordPress images based on Alpine (`wordpress:6-php8.4-fpm-alpine` and `wordpress:6-php8.5-fpm-alpine`), with:
+Custom WordPress images based on Alpine (`wordpress:7-php8.4-fpm-alpine` and `wordpress:7-php8.5-fpm-alpine`), with:
 
 - `wp-cli` available in the container
 - Composer available in the container
