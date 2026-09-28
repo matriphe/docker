@@ -284,7 +284,7 @@ if docker compose -p "${COMPOSE_PROJECT_NAME}" -f "${TEST_ENV_DIR}/docker-compos
   exit 1
 fi
 
-curl -sf "http://localhost:${JAEGER_UI_PORT}/api/services" >/dev/null
+curl -sf "http://localhost:${JAEGER_UI_PORT}/api/v3/services" >/dev/null
 
 SENTRY_COUNT="$(curl -sf -X POST "http://localhost:${SENTRY_MOCK_PORT}/__admin/requests/count" \
   -H "Content-Type: application/json" \
