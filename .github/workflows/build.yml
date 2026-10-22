@@ -164,10 +164,10 @@ jobs:
       matrix:
         include:
           - php_version: "8.4"
-            php_patch_version: "8.4.21"
+            php_patch_version: "8.4.27"
             latest_tag: "latest"
           - php_version: "8.5"
-            php_patch_version: "8.5.6"
+            php_patch_version: "8.5.12"
             latest_tag: ""
     permissions:
       contents: read
@@ -199,10 +199,10 @@ jobs:
       matrix:
         include:
           - php_version: "8.4"
-            php_patch_version: "8.4.21"
+            php_patch_version: "8.4.27"
             latest_tag: "latest"
           - php_version: "8.5"
-            php_patch_version: "8.5.6"
+            php_patch_version: "8.5.12"
             latest_tag: ""
     permissions:
       contents: read
