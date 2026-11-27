@@ -25,6 +25,8 @@ docker pull ghcr.io/matriphe/docker/nginx:openresty
 
 ## PHP-FPM
 
+PHP 8.4 is no longer used and will not be built in future releases. PHP 8.5 is the default and latest version; the current PHP-FPM build uses PHP 8.5.12.
+
 Custom PHP-FPM images based on Alpine (`php:8.5-fpm-alpine`), built from [`php/fpm`](php/fpm) with:
 
 - Shared PHP config from [`config/php/php.ini`](config/php/php.ini)
