@@ -25,7 +25,9 @@ docker pull ghcr.io/matriphe/docker/nginx:openresty
 
 ## PHP-FPM
 
-Custom PHP-FPM images based on Alpine (`php:8.4-fpm-alpine` and `php:8.5-fpm-alpine`), built from [`php/fpm`](php/fpm) with:
+PHP 8.4 is no longer used and will not be built in future releases. PHP 8.5 is the default and latest version; the current PHP-FPM build uses PHP 8.5.12.
+
+Custom PHP-FPM images based on Alpine (`php:8.5-fpm-alpine`), built from [`php/fpm`](php/fpm) with:
 
 - Shared PHP config from [`config/php/php.ini`](config/php/php.ini)
 - Shared FPM pool config from [`config/php/www.conf`](config/php/www.conf)
@@ -39,7 +41,6 @@ Custom PHP-FPM images based on Alpine (`php:8.4-fpm-alpine` and `php:8.5-fpm-alp
 ### Pull PHP-FPM Image
 
 ````console
-docker pull ghcr.io/matriphe/docker/php:8.4-fpm
 docker pull ghcr.io/matriphe/docker/php:8.5-fpm
 
 ### Configuration via Environment Variables
@@ -63,7 +64,7 @@ Rules: double underscore `__` becomes a literal `_`; single `_` becomes a `.` (s
 ```yaml
 services:
   php-fpm:
-    image: ghcr.io/matriphe/docker/php:8.4-fpm
+    image: ghcr.io/matriphe/docker/php:8.5-fpm
     environment:
       - PHP_INI_MEMORY__LIMIT=1G
       - PHP_INI_MAX_EXECUTION__TIME=120
@@ -72,7 +73,7 @@ services:
 
 ## WordPress
 
-Custom WordPress images based on Alpine (`wordpress:7-php8.4-fpm-alpine` and `wordpress:7-php8.5-fpm-alpine`), with:
+Custom WordPress images based on Alpine (`wordpress:7-php8.5-fpm-alpine`), with:
 
 - `wp-cli` available in the container
 - Composer available in the container
@@ -83,7 +84,6 @@ Custom WordPress images based on Alpine (`wordpress:7-php8.4-fpm-alpine` and `wo
 ### Pull WordPress Image
 
 ```console
-docker pull ghcr.io/matriphe/docker/wordpress:php8.4-fpm
 docker pull ghcr.io/matriphe/docker/wordpress:php8.5-fpm
 ```
 
@@ -92,12 +92,10 @@ docker pull ghcr.io/matriphe/docker/wordpress:php8.5-fpm
 The GitHub Actions Docker publish workflow runs on Friday at `04:00 UTC` (`05:00/06:00 Europe/Berlin`, depending on DST) and publishes:
 
 - `ghcr.io/matriphe/docker/nginx:openresty`
-- `ghcr.io/matriphe/docker/php:8.4-fpm`
 - `ghcr.io/matriphe/docker/php:8.5-fpm`
-- `ghcr.io/matriphe/docker/php:latest` (`8.4-fpm`)
-- `ghcr.io/matriphe/docker/wordpress:php8.4-fpm`
+- `ghcr.io/matriphe/docker/php:latest` (`8.5-fpm`)
 - `ghcr.io/matriphe/docker/wordpress:php8.5-fpm`
-- `ghcr.io/matriphe/docker/wordpress:latest` (`php8.4-fpm`)
+- `ghcr.io/matriphe/docker/wordpress:latest` (`php8.5-fpm`)
 
 ## Monitoring Setup with OpenTelemetry
 
@@ -125,7 +123,7 @@ services:
         condition: service_healthy
 
   php-fpm:
-    image: ghcr.io/matriphe/docker/php:8.4-fpm
+    image: ghcr.io/matriphe/docker/php:8.5-fpm
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
       - OTEL_SERVICE_NAME=php-fpm
@@ -137,7 +135,7 @@ services:
       retries: 5
 
   wordpress:
-    image: ghcr.io/matriphe/docker/wordpress:php8.4-fpm
+    image: ghcr.io/matriphe/docker/wordpress:php8.5-fpm
     environment:
       - WORDPRESS_DB_HOST=db
       - WORDPRESS_DB_USER=wordpress
@@ -184,7 +182,7 @@ services:
         condition: service_healthy
 
   php-fpm:
-    image: ghcr.io/matriphe/docker/php:8.4-fpm
+    image: ghcr.io/matriphe/docker/php:8.5-fpm
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
       - OTEL_SERVICE_NAME=php-fpm
@@ -195,7 +193,7 @@ services:
       retries: 5
 
   wordpress:
-    image: ghcr.io/matriphe/docker/wordpress:php8.4-fpm
+    image: ghcr.io/matriphe/docker/wordpress:php8.5-fpm
     environment:
       - WORDPRESS_DB_HOST=db
       - WORDPRESS_DB_USER=wordpress

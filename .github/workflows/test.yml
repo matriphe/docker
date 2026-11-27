@@ -16,10 +16,9 @@ on:
       php_version:
         description: "PHP version to test"
         required: true
-        default: "8.4"
+        default: "8.5"
         type: choice
         options:
-          - "8.4"
           - "8.5"
 
 concurrency:
