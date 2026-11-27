@@ -1,4 +1,4 @@
-FROM openresty/openresty:alpine
+FROM openresty/openresty:1.31.9.1-1-alpine
 
 ARG USER=www-data
 
